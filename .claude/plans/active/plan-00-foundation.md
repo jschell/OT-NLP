@@ -817,6 +817,15 @@ runs without any `.env` file in local development.
        assert "COPY requirements.txt" in DOCKERFILE.read_text()
 
 
+   def test_dockerfile_uses_uv_not_pip() -> None:
+       """Dockerfile must use uv to install packages — never pip install."""
+       content = DOCKERFILE.read_text()
+       assert "uv pip install" in content, "Dockerfile must install via uv pip install"
+       assert "pip install" not in content.replace("uv pip install", ""), (
+           "Dockerfile must not call pip install directly"
+       )
+
+
    def test_dockerfile_cmd_is_run_py() -> None:
        assert "run.py" in DOCKERFILE.read_text()
 
@@ -867,8 +876,11 @@ runs without any `.env` file in local development.
 
    WORKDIR /pipeline
 
+   # Install uv — the project's required package manager (never pip)
+   COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
    COPY requirements.txt .
-   RUN pip install --no-cache-dir -r requirements.txt
+   RUN uv pip install --system --no-cache -r requirements.txt
 
    # Default entrypoint: full pipeline orchestrator.
    # Override CMD for single-stage execution, e.g.:
@@ -978,6 +990,15 @@ runs without any `.env` file in local development.
        assert "streamlit==" in content
 
 
+   def test_dockerfile_uses_uv_not_pip() -> None:
+       """Streamlit Dockerfile must use uv to install packages — never pip install."""
+       content = (STREAMLIT_DIR / "Dockerfile.streamlit").read_text()
+       assert "uv pip install" in content, "Dockerfile.streamlit must install via uv pip install"
+       assert "pip install" not in content.replace("uv pip install", ""), (
+           "Dockerfile.streamlit must not call pip install directly"
+       )
+
+
    def test_app_exists() -> None:
        assert (STREAMLIT_DIR / "app.py").exists()
 
@@ -1008,8 +1029,11 @@ runs without any `.env` file in local development.
 
    WORKDIR /app
 
+   # Install uv — the project's required package manager (never pip)
+   COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
    COPY requirements_streamlit.txt .
-   RUN pip install --no-cache-dir -r requirements_streamlit.txt
+   RUN uv pip install --system --no-cache -r requirements_streamlit.txt
 
    EXPOSE 8501
 
