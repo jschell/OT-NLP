@@ -1,0 +1,128 @@
+# ═══════════════════════════════════════════════════════════════
+# Psalms NLP Pipeline — Docker Compose
+#
+# Host paths (relative, Linux convention) appear ONLY in volume
+# mount definitions. All other config uses container paths.
+# Credentials: use a .env file (see .env.example). Never commit
+# real secrets. The ${VAR:-default} syntax makes the stack work
+# without any .env file for local development.
+# ═══════════════════════════════════════════════════════════════
+
+networks:
+  psalms_net:
+    driver: bridge
+
+volumes:
+  pg_data:
+
+services:
+
+  # ── PostgreSQL 16 with pgvector ───────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: psalms_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-psalms}
+      POSTGRES_USER:     ${POSTGRES_USER:-psalms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-psalms_dev}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./pipeline:/pipeline:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - psalms_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U psalms -d psalms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── JupyterLab ────────────────────────────────────────────
+  jupyter:
+    image: jupyter/base-notebook:python-3.11
+    container_name: psalms_jupyter
+    restart: unless-stopped
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN:      ${JUPYTER_TOKEN:-psalms_dev}
+      POSTGRES_HOST:      db
+      POSTGRES_DB:        ${POSTGRES_DB:-psalms}
+      POSTGRES_USER:      ${POSTGRES_USER:-psalms}
+      POSTGRES_PASSWORD:  ${POSTGRES_PASSWORD:-psalms_dev}
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./data:/home/jovyan/data
+      - ./pipeline:/pipeline:ro
+    ports:
+      - "8888:8888"
+    networks:
+      - psalms_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Streamlit explorer (start with: --profile ui) ─────────
+  streamlit:
+    build:
+      context: ./streamlit
+      dockerfile: Dockerfile.streamlit
+    container_name: psalms_streamlit
+    restart: unless-stopped
+    profiles:
+      - ui
+    environment:
+      POSTGRES_HOST:     db
+      POSTGRES_DB:       ${POSTGRES_DB:-psalms}
+      POSTGRES_USER:     ${POSTGRES_USER:-psalms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-psalms_dev}
+    volumes:
+      - ./streamlit:/app
+      - ./pipeline:/pipeline:ro
+    ports:
+      - "8501:8501"
+    networks:
+      - psalms_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Pipeline runner (start with: --profile pipeline run) ──
+  pipeline:
+    build:
+      context: .                          # repo root — needs pyproject.toml + uv.lock
+      dockerfile: pipeline/Dockerfile.pipeline
+    container_name: psalms_pipeline
+    profiles:
+      - pipeline
+    environment:
+      POSTGRES_HOST:     db
+      POSTGRES_DB:       ${POSTGRES_DB:-psalms}
+      POSTGRES_USER:     ${POSTGRES_USER:-psalms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-psalms_dev}
+      LLM_PROVIDER:      ${LLM_PROVIDER:-none}
+      LLM_API_KEY:       ${LLM_API_KEY:-}
+      LLM_MODEL:         ${LLM_MODEL:-}
+      OLLAMA_HOST:       ${OLLAMA_HOST:-}
+    volumes:
+      - ./pipeline:/pipeline
+      - ./data:/data
+    networks:
+      - psalms_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Ollama — optional local LLM (uncomment to enable)
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: psalms_ollama
+  #   profiles:
+  #     - llm
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   ports:
+  #     - "11434:11434"
+  #   networks:
+  #     - psalms_net
