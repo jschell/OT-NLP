@@ -4,6 +4,7 @@ Unit tests for the validate_data module.
 
 Tests run against a mock connection — no live database required.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

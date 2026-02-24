@@ -8,6 +8,7 @@ database is required. The key behaviors tested are:
   - run() writes 0 rows when verses table is empty (pre-Stage-2 case)
   - run() skips sources with unknown formats gracefully (raises ValueError)
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -51,9 +52,12 @@ def _make_config(db_path: str) -> dict:
 
 def test_run_returns_required_keys(tmp_path: Path) -> None:
     """run() must return a dict with at least 'rows_written' and 'elapsed_s'."""
-    db_path = _make_sqlite_db(tmp_path, [
-        (19, 23, 1, "The LORD is my shepherd"),
-    ])
+    db_path = _make_sqlite_db(
+        tmp_path,
+        [
+            (19, 23, 1, "The LORD is my shepherd"),
+        ],
+    )
     config = _make_config(db_path)
 
     # Mock a connection that returns an empty verses table
@@ -70,9 +74,12 @@ def test_run_returns_required_keys(tmp_path: Path) -> None:
 
 def test_run_writes_zero_rows_when_verses_empty(tmp_path: Path) -> None:
     """run() must write 0 rows and not crash when verses table is empty."""
-    db_path = _make_sqlite_db(tmp_path, [
-        (19, 23, 1, "The LORD is my shepherd"),
-    ])
+    db_path = _make_sqlite_db(
+        tmp_path,
+        [
+            (19, 23, 1, "The LORD is my shepherd"),
+        ],
+    )
     config = _make_config(db_path)
 
     mock_conn = MagicMock()

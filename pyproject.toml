@@ -51,3 +51,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 pythonVersion = "3.11"
 typeCheckingMode = "basic"
 include = ["pipeline", "tests"]
+extraPaths = ["pipeline"]

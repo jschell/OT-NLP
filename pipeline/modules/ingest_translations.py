@@ -42,9 +42,7 @@ def run(
     """
     t0 = time.monotonic()
     sources = config.get("translations", {}).get("sources", [])
-    corpus_books = [
-        b["book_num"] for b in config.get("corpus", {}).get("books", [])
-    ]
+    corpus_books = [b["book_num"] for b in config.get("corpus", {}).get("books", [])]
 
     if not sources:
         logger.warning("No translation sources configured. Skipping.")
@@ -66,9 +64,7 @@ def run(
             logger.info("  %s book %s: %d rows written", t_id, book_num, rows)
 
     elapsed = time.monotonic() - t0
-    logger.info(
-        "Translation ingest complete: %d rows in %.2fs", total_written, elapsed
-    )
+    logger.info("Translation ingest complete: %d rows in %.2fs", total_written, elapsed)
     return {"rows_written": total_written, "elapsed_s": round(elapsed, 3)}
 
 

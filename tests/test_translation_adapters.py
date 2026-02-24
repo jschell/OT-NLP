@@ -9,6 +9,7 @@ string written to a tmp_path directory.
 Run with:
     uv run --frozen pytest tests/test_translation_adapters.py -v
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -61,10 +62,13 @@ PSALM_23_USFM = r"""\id PSA
 
 def test_sqlite_adapter_psalm_23_1(tmp_path: Path) -> None:
     """SQLiteScrollmapperAdapter must return correct KJV text for Psalm 23:1."""
-    db_path = _make_sqlite_db(tmp_path, [
-        (19, 23, 1, "The LORD is my shepherd; I shall not want."),
-        (19, 23, 2, "He maketh me to lie down in green pastures."),
-    ])
+    db_path = _make_sqlite_db(
+        tmp_path,
+        [
+            (19, 23, 1, "The LORD is my shepherd; I shall not want."),
+            (19, 23, 2, "He maketh me to lie down in green pastures."),
+        ],
+    )
     adapter = SQLiteScrollmapperAdapter(
         {"id": "KJV", "format": "sqlite_scrollmapper", "path": db_path}
     )
@@ -77,9 +81,12 @@ def test_sqlite_adapter_psalm_23_1(tmp_path: Path) -> None:
 
 def test_sqlite_adapter_missing_verse(tmp_path: Path) -> None:
     """SQLiteScrollmapperAdapter must return None for a verse that doesn't exist."""
-    db_path = _make_sqlite_db(tmp_path, [
-        (19, 23, 1, "The LORD is my shepherd; I shall not want."),
-    ])
+    db_path = _make_sqlite_db(
+        tmp_path,
+        [
+            (19, 23, 1, "The LORD is my shepherd; I shall not want."),
+        ],
+    )
     adapter = SQLiteScrollmapperAdapter(
         {"id": "KJV", "format": "sqlite_scrollmapper", "path": db_path}
     )
@@ -92,10 +99,13 @@ def test_sqlite_adapter_missing_verse(tmp_path: Path) -> None:
 
 def test_sqlite_adapter_book_filter(tmp_path: Path) -> None:
     """SQLiteScrollmapperAdapter.get_verse(19, ...) must not return Genesis rows."""
-    db_path = _make_sqlite_db(tmp_path, [
-        (19, 23, 1, "The LORD is my shepherd"),
-        (1,   1, 1, "In the beginning God created"),
-    ])
+    db_path = _make_sqlite_db(
+        tmp_path,
+        [
+            (19, 23, 1, "The LORD is my shepherd"),
+            (1, 1, 1, "In the beginning God created"),
+        ],
+    )
     adapter = SQLiteScrollmapperAdapter(
         {"id": "KJV", "format": "sqlite_scrollmapper", "path": db_path}
     )
@@ -113,9 +123,7 @@ def test_sqlite_adapter_book_filter(tmp_path: Path) -> None:
 def test_usfm_adapter_psalm_23_1(tmp_path: Path) -> None:
     """USFMAdapter must return the cleaned text for Psalm 23:1."""
     usfm_dir = _make_usfm_dir(tmp_path, PSALM_23_USFM)
-    adapter = USFMAdapter(
-        {"id": "ULT", "format": "usfm", "path": str(usfm_dir)}
-    )
+    adapter = USFMAdapter({"id": "ULT", "format": "usfm", "path": str(usfm_dir)})
     result = adapter.get_verse(19, 23, 1)
     assert result is not None
     # After stripping \w markup, "LORD" must remain
@@ -132,9 +140,7 @@ def test_usfm_adapter_strips_markup(tmp_path: Path) -> None:
 \v 1 \w Blessed|lemma="blessed" x-morph="Adj"\w* is the man\f + \fr 1:1 \ft note\f*.
 """
     usfm_dir = _make_usfm_dir(tmp_path, usfm_with_markup)
-    adapter = USFMAdapter(
-        {"id": "ULT", "format": "usfm", "path": str(usfm_dir)}
-    )
+    adapter = USFMAdapter({"id": "ULT", "format": "usfm", "path": str(usfm_dir)})
     result = adapter.get_verse(19, 1, 1)
     assert result is not None
     assert "Blessed" in result
@@ -151,9 +157,7 @@ def test_usfm_adapter_strips_markup(tmp_path: Path) -> None:
 def test_usfm_adapter_missing_verse(tmp_path: Path) -> None:
     """USFMAdapter must return None when the verse does not exist in the file."""
     usfm_dir = _make_usfm_dir(tmp_path, PSALM_23_USFM)
-    adapter = USFMAdapter(
-        {"id": "ULT", "format": "usfm", "path": str(usfm_dir)}
-    )
+    adapter = USFMAdapter({"id": "ULT", "format": "usfm", "path": str(usfm_dir)})
     result = adapter.get_verse(19, 23, 999)
     assert result is None
 
@@ -163,9 +167,7 @@ def test_usfm_adapter_missing_verse(tmp_path: Path) -> None:
 
 def test_api_adapter_stub_returns_none() -> None:
     """APIAdapter.get_verse must return None (not implemented / stub)."""
-    adapter = APIAdapter(
-        {"id": "ESV", "format": "api", "provider": "esv"}
-    )
+    adapter = APIAdapter({"id": "ESV", "format": "api", "provider": "esv"})
     result = adapter.get_verse(19, 23, 1)
     assert result is None
 
@@ -187,9 +189,7 @@ def test_adapter_factory_sqlite(tmp_path: Path) -> None:
 
 def test_adapter_factory_usfm(tmp_path: Path) -> None:
     """adapter_factory must return USFMAdapter for usfm format."""
-    adapter = adapter_factory(
-        {"id": "ULT", "format": "usfm", "path": "/some/path"}
-    )
+    adapter = adapter_factory({"id": "ULT", "format": "usfm", "path": "/some/path"})
     assert isinstance(adapter, USFMAdapter)
 
 

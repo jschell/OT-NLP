@@ -62,9 +62,9 @@ def test_schema_has_all_tables() -> None:
     sql = _sql().lower()
     for table in REQUIRED_TABLES:
         pattern = rf"create table if not exists\s+{table}\b"
-        assert re.search(
-            pattern, sql
-        ), f"Missing 'CREATE TABLE IF NOT EXISTS {table}' in init_schema.sql"
+        assert re.search(pattern, sql), (
+            f"Missing 'CREATE TABLE IF NOT EXISTS {table}' in init_schema.sql"
+        )
 
 
 def test_schema_has_all_indices() -> None:
@@ -83,9 +83,9 @@ def test_schema_seeds_all_six_books() -> None:
     """All 6 expected book_num values must appear in the INSERT block."""
     sql = _sql()
     for book_num in SEED_BOOK_NUMS:
-        assert (
-            str(book_num) in sql
-        ), f"book_num={book_num} not found in init_schema.sql seed data"
+        assert str(book_num) in sql, (
+            f"book_num={book_num} not found in init_schema.sql seed data"
+        )
     for name in ["Genesis", "Exodus", "Job", "Psalms", "Isaiah", "Lamentations"]:
         assert name in sql, f"Book name '{name}' missing from seed data"
 

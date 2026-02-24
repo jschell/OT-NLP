@@ -83,9 +83,8 @@ def run(
             passed += 1
 
     if failures:
-        msg = (
-            f"Data validation FAILED ({len(failures)} check(s)):\n"
-            + "\n".join(failures)
+        msg = f"Data validation FAILED ({len(failures)} check(s)):\n" + "\n".join(
+            failures
         )
         logger.error(msg)
         raise AssertionError(msg)

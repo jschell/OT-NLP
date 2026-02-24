@@ -90,9 +90,9 @@ def check_pgvector(conn: psycopg2.extensions.connection) -> None:
     with conn.cursor() as cur:
         cur.execute("SELECT extname FROM pg_extension WHERE extname = 'vector'")
         row = cur.fetchone()
-    assert (
-        row is not None
-    ), "pgvector extension not found. Run: CREATE EXTENSION IF NOT EXISTS pgvector;"
+    assert row is not None, (
+        "pgvector extension not found. Run: CREATE EXTENSION IF NOT EXISTS pgvector;"
+    )
     logger.info("CHECK  pgvector extension: OK")
 
 
@@ -112,9 +112,9 @@ def check_indices(conn: psycopg2.extensions.connection) -> None:
         cur.execute("SELECT indexname FROM pg_indexes WHERE schemaname = 'public'")
         found = {row[0] for row in cur.fetchall()}
     missing = REQUIRED_INDICES - found
-    assert (
-        not missing
-    ), f"Missing indices: {sorted(missing)}\nFound: {sorted(found & REQUIRED_INDICES)}"
+    assert not missing, (
+        f"Missing indices: {sorted(missing)}\nFound: {sorted(found & REQUIRED_INDICES)}"
+    )
     logger.info(f"CHECK  all {len(REQUIRED_INDICES)} indices present: OK")
 
 
@@ -123,9 +123,9 @@ def check_books_seed(conn: psycopg2.extensions.connection) -> None:
     with conn.cursor() as cur:
         cur.execute("SELECT book_num, book_name FROM books ORDER BY book_num")
         rows = {(r[0], r[1]) for r in cur.fetchall()}
-    assert (
-        rows == EXPECTED_BOOKS
-    ), f"books mismatch.\nExpected: {sorted(EXPECTED_BOOKS)}\nGot: {sorted(rows)}"
+    assert rows == EXPECTED_BOOKS, (
+        f"books mismatch.\nExpected: {sorted(EXPECTED_BOOKS)}\nGot: {sorted(rows)}"
+    )
     logger.info(f"CHECK  books seed data ({len(rows)} rows): OK")
 
 
