@@ -33,7 +33,7 @@ any data pipeline work begins.
 All services run under Docker Compose on a single bridge network (`psalms_net`). The
 database service uses the official `pgvector/pgvector:pg16` image with a named volume for
 data persistence. The pipeline service is built from a `python:3.11-slim` base image,
-installs Python dependencies from `requirements.txt`, and downloads the Typst v0.12.0
+installs Python dependencies via `uv sync --frozen` from `pyproject.toml` + `uv.lock`, and downloads the Typst v0.12.0
 binary at build time for Stage 6 PDF generation. All Python source is bind-mounted from
 the host at `./pipeline:/pipeline` so edits are reflected without rebuilds. Credentials
 are never hard-coded: `docker-compose.yml` uses `${VAR:-default}` syntax so the stack
@@ -113,8 +113,9 @@ runs without any `.env` file in local development.
 2. Run and confirm FAILED:
 
    ```bash
-   uv run --frozen pytest tests/test_scaffold.py -v
+   uv run pytest tests/test_scaffold.py -v
    # Expected: FAILED — conftest.py and pyproject.toml do not exist yet
+   # Note: do NOT use --frozen here; uv.lock does not exist until step 4
    ```
 
 3. Implement in the files listed above.
@@ -143,6 +144,29 @@ runs without any `.env` file in local development.
    version = "0.1.0"
    description = "Biblical Hebrew NLP analysis pipeline"
    requires-python = ">=3.11"
+   dependencies = [
+       "psycopg2-binary==2.9.9",
+       "pgvector==0.2.5",
+       "pyyaml==6.0.1",
+       "text-fabric==12.0.0",
+       "numpy==1.26.4",
+       "pandas==2.2.2",
+       "sphinx==8.1.3",
+       "myst-nb==1.3.0",
+       "sphinx-book-theme==1.1.3",
+       "sphinxcontrib-bibtex==2.6.3",
+       "nbconvert==7.16.4",
+       "ipykernel==6.29.5",
+       "plotly==5.22.0",
+       "kaleido==0.2.1",
+       "streamlit==1.35.0",
+       "usfm-grammar==2.3.0",
+       "pronouncing==0.2.0",
+       "anthropic==0.28.1",
+       "openai==1.35.0",
+       "google-generativeai==0.7.2",
+       "requests==2.32.3",
+   ]
 
    [tool.uv]
    dev-dependencies = [
@@ -150,7 +174,6 @@ runs without any `.env` file in local development.
        "ruff>=0.4",
        "pyright>=1.1",
        "pre-commit>=3.7",
-       "pyyaml>=6.0",
    ]
 
    [tool.pytest.ini_options]
@@ -183,20 +206,27 @@ runs without any `.env` file in local development.
          - id: ruff-format
    ```
 
-4. Run and confirm PASSED:
+4. Generate lockfile and wire pre-commit hooks:
+
+   ```bash
+   uv lock                      # creates uv.lock; required before any --frozen command
+   uv run pre-commit install    # wire ruff hooks into .git/hooks/pre-commit
+   ```
+
+5. Run and confirm PASSED:
 
    ```bash
    uv run --frozen pytest tests/test_scaffold.py -v
    # Expected: PASSED (5 tests)
    ```
 
-5. Lint + typecheck:
+6. Lint + typecheck:
 
    ```bash
    uv run --frozen ruff check . --fix && uv run --frozen pyright
    ```
 
-6. Commit: `"scaffold: conftest.py, pyproject.toml, pre-commit config"`
+7. Commit: `"scaffold: conftest.py, pyproject.toml, pre-commit config"`
 
 ---
 
@@ -761,11 +791,15 @@ runs without any `.env` file in local development.
 
 ---
 
-### Task 4: Pipeline Dockerfile and requirements.txt
+### Task 4: Pipeline Dockerfile
 
 **Files:**
 - `pipeline/Dockerfile.pipeline`
-- `pipeline/requirements.txt`
+
+> **Note:** Dependencies are declared in the repo-root `pyproject.toml`
+> (added in Task 1) and locked in `uv.lock`.  The Docker build context is
+> the repo root so both files are accessible at build time.  No separate
+> `requirements.txt` is needed.
 
 **Steps:**
 
@@ -773,26 +807,10 @@ runs without any `.env` file in local development.
 
    ```python
    # tests/test_dockerfile.py
-   """Static verification of Dockerfile.pipeline and requirements.txt."""
+   """Static verification of pipeline/Dockerfile.pipeline."""
    from pathlib import Path
 
    DOCKERFILE = Path(__file__).parent.parent / "pipeline" / "Dockerfile.pipeline"
-   REQUIREMENTS = Path(__file__).parent.parent / "pipeline" / "requirements.txt"
-
-   REQUIRED_PACKAGES = [
-       "psycopg2-binary",
-       "pyyaml",
-       "text-fabric",
-       "numpy",
-       "pandas",
-       "sphinx",
-       "myst-nb",
-       "plotly",
-       "streamlit",
-       "anthropic",
-       "openai",
-       "requests",
-   ]
 
 
    def test_dockerfile_exists() -> None:
@@ -813,40 +831,36 @@ runs without any `.env` file in local development.
        assert "WORKDIR /pipeline" in DOCKERFILE.read_text()
 
 
-   def test_dockerfile_copies_requirements() -> None:
-       assert "COPY requirements.txt" in DOCKERFILE.read_text()
+   def test_dockerfile_copies_lockfile() -> None:
+       """Dockerfile must copy pyproject.toml and uv.lock, not a requirements.txt."""
+       content = DOCKERFILE.read_text()
+       assert "pyproject.toml" in content
+       assert "uv.lock" in content
+
+
+   def test_dockerfile_uses_uv_sync() -> None:
+       """Dockerfile must install via uv sync — not pip or uv pip install."""
+       content = DOCKERFILE.read_text()
+       assert "uv sync" in content, "Dockerfile must use 'uv sync' to install deps"
+       assert "pip install" not in content, (
+           "Dockerfile must not call pip install in any form"
+       )
+
+
+   def test_dockerfile_sets_venv_on_path() -> None:
+       """The venv bin dir must be on PATH so 'python' resolves correctly."""
+       assert "/pipeline/.venv/bin" in DOCKERFILE.read_text()
 
 
    def test_dockerfile_cmd_is_run_py() -> None:
        assert "run.py" in DOCKERFILE.read_text()
-
-
-   def test_requirements_exists() -> None:
-       assert REQUIREMENTS.exists()
-
-
-   def test_requirements_has_all_packages() -> None:
-       content = REQUIREMENTS.read_text().lower()
-       for pkg in REQUIRED_PACKAGES:
-           assert pkg.lower() in content, f"Missing '{pkg}' in requirements.txt"
-
-
-   def test_requirements_pins_versions() -> None:
-       """Every non-comment, non-empty line must use == pinning."""
-       lines = [
-           ln.strip()
-           for ln in REQUIREMENTS.read_text().splitlines()
-           if ln.strip() and not ln.startswith("#")
-       ]
-       unpinned = [ln for ln in lines if "==" not in ln]
-       assert not unpinned, f"Unpinned packages: {unpinned}"
    ```
 
 2. Run and confirm FAILED:
 
    ```bash
    uv run --frozen pytest tests/test_dockerfile.py -v
-   # Expected: FAILED — files do not exist yet
+   # Expected: FAILED — pipeline/Dockerfile.pipeline does not exist yet
    ```
 
 3. Implement `pipeline/Dockerfile.pipeline`:
@@ -867,8 +881,17 @@ runs without any `.env` file in local development.
 
    WORKDIR /pipeline
 
-   COPY requirements.txt .
-   RUN pip install --no-cache-dir -r requirements.txt
+   # uv is the project's only allowed package manager
+   COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+   # Copy dependency specs from the repo root (build context must be '.')
+   COPY pyproject.toml uv.lock ./
+
+   # Install production deps into a venv; --no-dev excludes pytest/ruff/pyright
+   RUN uv sync --frozen --no-dev
+
+   # Put the venv on PATH so 'python' and entry-points work without 'uv run'
+   ENV PATH="/pipeline/.venv/bin:$PATH"
 
    # Default entrypoint: full pipeline orchestrator.
    # Override CMD for single-stage execution, e.g.:
@@ -876,54 +899,15 @@ runs without any `.env` file in local development.
    CMD ["python", "run.py"]
    ```
 
-   Implement `pipeline/requirements.txt`:
-
-   ```text
-   # ── Database ──────────────────────────────────────────────────
-   psycopg2-binary==2.9.9
-   pgvector==0.2.5
-
-   # ── Configuration ─────────────────────────────────────────────
-   pyyaml==6.0.1
-
-   # ── Data / Hebrew NLP ─────────────────────────────────────────
-   text-fabric==12.0.0
-   numpy==1.26.4
-   pandas==2.2.2
-
-   # ── Publication ───────────────────────────────────────────────
-   sphinx==8.1.3
-   myst-nb==1.3.0
-   sphinx-book-theme==1.1.3
-   sphinxcontrib-bibtex==2.6.3
-   nbconvert==7.16.4
-   ipykernel==6.29.5
-
-   # ── Visualization ─────────────────────────────────────────────
-   plotly==5.22.0
-   kaleido==0.2.1
-
-   # ── Streamlit ─────────────────────────────────────────────────
-   streamlit==1.35.0
-
-   # ── Translation adapters ──────────────────────────────────────
-   usfm-grammar==2.3.0
-
-   # ── Phoneme / NLP ─────────────────────────────────────────────
-   pronouncing==0.2.0
-
-   # ── LLM adapters (all optional at runtime) ────────────────────
-   anthropic==0.28.1
-   openai==1.35.0
-   google-generativeai==0.7.2
-   requests==2.32.3
-   ```
+   > **docker-compose.yml build context:** because `pyproject.toml` and
+   > `uv.lock` live at the repo root, the pipeline service must use context
+   > `.` with an explicit `dockerfile:` path.  This is reflected in Task 6.
 
 4. Run and confirm PASSED:
 
    ```bash
    uv run --frozen pytest tests/test_dockerfile.py -v
-   # Expected: PASSED (9 tests)
+   # Expected: PASSED (7 tests)
    ```
 
 5. Lint + typecheck:
@@ -932,7 +916,7 @@ runs without any `.env` file in local development.
    uv run --frozen ruff check . --fix && uv run --frozen pyright
    ```
 
-6. Commit: `"docker: Dockerfile.pipeline and pinned requirements.txt"`
+6. Commit: `"docker: Dockerfile.pipeline using uv sync"`
 
 ---
 
@@ -973,9 +957,27 @@ runs without any `.env` file in local development.
        assert (STREAMLIT_DIR / "requirements_streamlit.txt").exists()
 
 
-   def test_requirements_pins_streamlit() -> None:
-       content = (STREAMLIT_DIR / "requirements_streamlit.txt").read_text()
+   def test_streamlit_pyproject_exists() -> None:
+       """streamlit/pyproject.toml must exist (uv sync source for the container)."""
+       assert (STREAMLIT_DIR / "pyproject.toml").exists()
+
+
+   def test_streamlit_pyproject_pins_streamlit() -> None:
+       content = (STREAMLIT_DIR / "pyproject.toml").read_text()
        assert "streamlit==" in content
+
+
+   def test_dockerfile_uses_uv_sync() -> None:
+       """Streamlit Dockerfile must use 'uv sync' — not pip or uv pip install."""
+       content = (STREAMLIT_DIR / "Dockerfile.streamlit").read_text()
+       assert "uv sync" in content, "Dockerfile.streamlit must use 'uv sync'"
+       assert "pip install" not in content, (
+           "Dockerfile.streamlit must not call pip install in any form"
+       )
+
+
+   def test_dockerfile_sets_venv_on_path() -> None:
+       assert "/app/.venv/bin" in (STREAMLIT_DIR / "Dockerfile.streamlit").read_text()
 
 
    def test_app_exists() -> None:
@@ -999,7 +1001,31 @@ runs without any `.env` file in local development.
    # Expected: FAILED — streamlit/ files do not exist yet
    ```
 
-3. Implement the three files.
+3. Implement the four files.
+
+   `streamlit/pyproject.toml`:
+
+   ```toml
+   [project]
+   name = "ot-nlp-streamlit"
+   version = "0.1.0"
+   description = "Psalms NLP Explorer — Streamlit UI"
+   requires-python = ">=3.11"
+   dependencies = [
+       "streamlit==1.35.0",
+       "plotly==5.22.0",
+       "psycopg2-binary==2.9.9",
+       "pandas==2.2.2",
+       "numpy==1.26.4",
+   ]
+   ```
+
+3b. Generate the streamlit lockfile (required by `uv sync --frozen` inside the Docker image):
+
+   ```bash
+   cd streamlit && uv lock && cd ..
+   # Creates streamlit/uv.lock — must be committed before docker build
+   ```
 
    `streamlit/Dockerfile.streamlit`:
 
@@ -1008,24 +1034,23 @@ runs without any `.env` file in local development.
 
    WORKDIR /app
 
-   COPY requirements_streamlit.txt .
-   RUN pip install --no-cache-dir -r requirements_streamlit.txt
+   # uv is the project's only allowed package manager
+   COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+   # Copy dependency specs (build context is ./streamlit)
+   COPY pyproject.toml uv.lock ./
+
+   # Install into a venv; uv.lock guarantees exact pinned versions
+   RUN uv sync --frozen
+
+   # Put the venv on PATH so 'streamlit' resolves without 'uv run'
+   ENV PATH="/app/.venv/bin:$PATH"
 
    EXPOSE 8501
 
    CMD ["streamlit", "run", "app.py", \
         "--server.port=8501", \
         "--server.address=0.0.0.0"]
-   ```
-
-   `streamlit/requirements_streamlit.txt`:
-
-   ```text
-   streamlit==1.35.0
-   plotly==5.22.0
-   psycopg2-binary==2.9.9
-   pandas==2.2.2
-   numpy==1.26.4
    ```
 
    `streamlit/app.py`:
@@ -1052,7 +1077,7 @@ runs without any `.env` file in local development.
 
    ```bash
    uv run --frozen pytest tests/test_streamlit_placeholder.py -v
-   # Expected: PASSED (8 tests)
+   # Expected: PASSED (9 tests)
    ```
 
 5. Lint + typecheck:
@@ -1061,7 +1086,7 @@ runs without any `.env` file in local development.
    uv run --frozen ruff check . --fix && uv run --frozen pyright
    ```
 
-6. Commit: `"streamlit: placeholder Dockerfile, requirements, and app.py"`
+6. Commit: `"streamlit: placeholder Dockerfile (uv sync), pyproject.toml, and app.py"`
 
 ---
 
@@ -1256,8 +1281,8 @@ runs without any `.env` file in local development.
      # ── Pipeline runner (start with: --profile pipeline run) ──
      pipeline:
        build:
-         context: ./pipeline
-         dockerfile: Dockerfile.pipeline
+         context: .                          # repo root — needs pyproject.toml + uv.lock
+         dockerfile: pipeline/Dockerfile.pipeline
        container_name: psalms_pipeline
        profiles:
          - pipeline

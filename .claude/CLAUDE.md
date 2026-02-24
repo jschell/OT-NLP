@@ -154,9 +154,17 @@ Ruff is the formatter and linter. Pre-commit runs on git commit.
 ## Autonomous Work
 
 ```
-Plans: docs/plans/{1_backlog,2_active,3_complete}/
+Plans: .claude/plans/{queue,active,completed,holding}/
 Active: max 1 plan at a time
+Queue: ordered backlog — pull the lowest-numbered plan into active/ when active/ is empty
+Holding: plans parked outside the queue (not yet scheduled)
 ```
+
+**Plan lifecycle:**
+1. Pick the lowest-numbered plan from `queue/`, move it to `active/`
+2. Execute the plan to completion
+3. Move the completed plan from `active/` to `completed/`
+4. Repeat from step 1
 
 Stop and consult the human when:
 - 3 consecutive failures on the same step
