@@ -1,0 +1,7 @@
+# Kept for reference only — the container uses uv sync from pyproject.toml.
+# Do not use this file for installation.
+streamlit==1.35.0
+plotly==5.22.0
+psycopg2-binary==2.9.9
+pandas==2.2.2
+numpy==1.26.4

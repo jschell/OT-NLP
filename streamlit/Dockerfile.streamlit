@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# uv is the project's only allowed package manager
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy dependency specs (build context is ./streamlit)
+COPY pyproject.toml uv.lock ./
+
+# Install into a venv; uv.lock guarantees exact pinned versions
+RUN uv sync --frozen
+
+# Put the venv on PATH so 'streamlit' resolves without 'uv run'
+ENV PATH="/app/.venv/bin:$PATH"
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "app.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0"]
