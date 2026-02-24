@@ -175,6 +175,6 @@ check whether any skill applies before responding or acting.
 | Tier | Skills |
 |------|--------|
 | 0 — Always | `using-superpowers` |
-| 1 — Essential | `project-setup` · `writing-plans` · `executing-plans` · `autonomous-work` |
+| 1 — Essential | `repo-init` · `project-setup` · `writing-plans` · `executing-plans` · `autonomous-work` |
 | 2 — Per stage | `test-driven-development` · `verification-before-completion` · `finishing-a-development-branch` |
 | 3 — Targeted | `dispatching-parallel-agents` · `subagent-driven-development` · `systematic-debugging` · `feature-backlog` · `read-arxiv-paper` |
