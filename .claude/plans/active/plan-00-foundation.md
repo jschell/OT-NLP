@@ -113,8 +113,9 @@ runs without any `.env` file in local development.
 2. Run and confirm FAILED:
 
    ```bash
-   uv run --frozen pytest tests/test_scaffold.py -v
+   uv run pytest tests/test_scaffold.py -v
    # Expected: FAILED — conftest.py and pyproject.toml do not exist yet
+   # Note: do NOT use --frozen here; uv.lock does not exist until step 4
    ```
 
 3. Implement in the files listed above.
@@ -205,20 +206,27 @@ runs without any `.env` file in local development.
          - id: ruff-format
    ```
 
-4. Run and confirm PASSED:
+4. Generate lockfile and wire pre-commit hooks:
+
+   ```bash
+   uv lock                      # creates uv.lock; required before any --frozen command
+   uv run pre-commit install    # wire ruff hooks into .git/hooks/pre-commit
+   ```
+
+5. Run and confirm PASSED:
 
    ```bash
    uv run --frozen pytest tests/test_scaffold.py -v
    # Expected: PASSED (5 tests)
    ```
 
-5. Lint + typecheck:
+6. Lint + typecheck:
 
    ```bash
    uv run --frozen ruff check . --fix && uv run --frozen pyright
    ```
 
-6. Commit: `"scaffold: conftest.py, pyproject.toml, pre-commit config"`
+7. Commit: `"scaffold: conftest.py, pyproject.toml, pre-commit config"`
 
 ---
 
@@ -1012,8 +1020,12 @@ runs without any `.env` file in local development.
    ]
    ```
 
-   > After writing this file, run `uv lock` inside `streamlit/` to generate
-   > `streamlit/uv.lock` before building the image.
+3b. Generate the streamlit lockfile (required by `uv sync --frozen` inside the Docker image):
+
+   ```bash
+   cd streamlit && uv lock && cd ..
+   # Creates streamlit/uv.lock — must be committed before docker build
+   ```
 
    `streamlit/Dockerfile.streamlit`:
 
