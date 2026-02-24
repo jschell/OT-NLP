@@ -1,0 +1,91 @@
+# ═══════════════════════════════════════════════════════════════
+# Psalms NLP Pipeline — Master Configuration
+# All paths are container-internal (Linux). Host paths appear
+# ONLY in docker-compose.yml volume mount definitions.
+# ═══════════════════════════════════════════════════════════════
+
+pipeline:
+  name: psalms_nlp
+  version: "0.1.0"
+  stages:
+    - ingest
+    - fingerprint
+    - breath
+    - chiasm
+    - score
+    - suggest
+    - export
+  on_error: stop   # stop | warn_continue
+
+corpus:
+  books:
+    - book_num: 19
+      name: Psalms
+  debug_chapters: []   # e.g. [23] to run only Psalm 23 during development
+
+bhsa:
+  data_path: /data/bhsa
+
+translations:
+  sources:
+    - id:     KJV
+      format: sqlite_scrollmapper
+      path:   /data/translations/t_kjv.db
+
+    - id:     YLT
+      format: sqlite_scrollmapper
+      path:   /data/translations/t_ylt.db
+
+    - id:     WEB
+      format: sqlite_scrollmapper
+      path:   /data/translations/t_web.db
+
+    - id:     ULT
+      format: usfm
+      path:   /data/translations/ult/
+      book_map: usfm_standard
+
+    - id:     UST
+      format: usfm
+      path:   /data/translations/ust/
+      book_map: usfm_standard
+
+fingerprint:
+  batch_size: 100
+  conflict_mode: skip   # skip | upsert | rebuild
+
+breath:
+  batch_size: 100
+  conflict_mode: skip
+
+chiasm:
+  similarity_threshold: 0.75
+  min_confidence: 0.65
+  max_stanza_verses: 8
+
+scoring:
+  batch_size: 100
+  conflict_mode: skip
+  deviation_weights:
+    density:     0.35
+    morpheme:    0.25
+    sonority:    0.20
+    compression: 0.20
+  breath_alignment_weights:
+    stress: 0.60
+    weight: 0.40
+
+llm:
+  provider: none   # none | anthropic | openai | gemini | openrouter | ollama
+  model: ""
+  max_tokens: 256
+  temperature: 0.3
+  suggestion_filter:
+    min_composite_deviation: 0.15
+    max_suggestions_per_verse: 3
+
+export:
+  output_dir: /data/outputs
+  report_dir: /data/outputs/report
+  pdf_path:   /data/outputs/report.pdf
+  typst_version: "0.12.0"
