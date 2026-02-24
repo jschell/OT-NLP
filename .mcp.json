@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "wsl.exe",
+      "args": [
+        "bash", "-ic",
+        "npx @modelcontextprotocol/server-filesystem /home/user/OT-NLP"
+      ]
+    }
+  }
+}
