@@ -55,7 +55,7 @@ def test_compose_has_pg_data_volume() -> None:
 
 def test_compose_no_hardcoded_passwords() -> None:
     """Credentials must use ${VAR:-default} syntax, not bare literals."""
-    raw = COMPOSE_PATH.read_text()
+    raw = COMPOSE_PATH.read_text(encoding="utf-8")
     # Reject POSTGRES_PASSWORD: <bare_value> not wrapped in ${}
     bad = re.findall(r"POSTGRES_PASSWORD:\s+(?!\$\{)[^\s#]", raw)
     assert not bad, f"Hard-coded password found: {bad}"

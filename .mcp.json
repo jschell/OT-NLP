@@ -1,11 +1,22 @@
 {
   "mcpServers": {
     "filesystem": {
-      "command": "wsl.exe",
+      "command": "powershell.exe",
       "args": [
-        "bash", "-ic",
-        "npx @modelcontextprotocol/server-filesystem \"$(wslpath -u \"$OneDriveCommercial\")/Documents/GitHub/OT-NLP\""
+        "-NoProfile", "-NonInteractive", "-Command",
+        "& { $p = (wsl wslpath -u \"$env:OneDriveCommercial\").Trim(); wsl bash -lc \"npx -y @modelcontextprotocol/server-filesystem '$p/Documents/GitHub/OT-NLP'\" }"
       ]
+    },
+    "git": {
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-NonInteractive", "-Command",
+        "& { $p = (wsl wslpath -u \"$env:OneDriveCommercial\").Trim(); wsl bash -lc \"npx -y @modelcontextprotocol/server-git --repository '$p/Documents/GitHub/OT-NLP'\" }"
+      ]
+    },
+    "docker": {
+      "command": "docker",
+      "args": ["mcp", "gateway", "run", "--servers", "docker,database-server"]
     }
   }
 }

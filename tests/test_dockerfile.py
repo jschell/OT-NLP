@@ -42,7 +42,7 @@ def test_dockerfile_uses_uv_sync() -> None:
 
 def test_dockerfile_sets_venv_on_path() -> None:
     """The venv bin dir must be on PATH so 'python' resolves correctly."""
-    assert "/pipeline/.venv/bin" in DOCKERFILE.read_text()
+    assert "/venv/bin" in DOCKERFILE.read_text()
 
 
 def test_dockerfile_cmd_is_run_py() -> None:

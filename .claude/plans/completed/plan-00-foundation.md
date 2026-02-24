@@ -1,7 +1,7 @@
 # Plan: Stage 0 — Foundation & Infrastructure
 
 > **Depends on:** No dependencies.
-> **Status:** active
+> **Status:** completed
 
 ## Goal
 
