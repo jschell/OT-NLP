@@ -8,9 +8,9 @@ from pathlib import Path
 def test_pipeline_on_sys_path() -> None:
     """conftest.py must add pipeline/ to sys.path so pipeline modules import."""
     pipeline_dir = str(Path(__file__).parent.parent / "pipeline")
-    assert (
-        pipeline_dir in sys.path
-    ), f"pipeline/ not in sys.path.\nExpected: {pipeline_dir}\nGot: {sys.path}"
+    assert pipeline_dir in sys.path, (
+        f"pipeline/ not in sys.path.\nExpected: {pipeline_dir}\nGot: {sys.path}"
+    )
 
 
 def test_pyproject_toml_exists() -> None:

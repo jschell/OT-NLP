@@ -35,14 +35,14 @@ def test_dockerfile_uses_uv_sync() -> None:
     """Dockerfile must install via uv sync — not pip or uv pip install."""
     content = DOCKERFILE.read_text()
     assert "uv sync" in content, "Dockerfile must use 'uv sync' to install deps"
-    assert (
-        "pip install" not in content
-    ), "Dockerfile must not call pip install in any form"
+    assert "pip install" not in content, (
+        "Dockerfile must not call pip install in any form"
+    )
 
 
 def test_dockerfile_sets_venv_on_path() -> None:
     """The venv bin dir must be on PATH so 'python' resolves correctly."""
-    assert "/pipeline/.venv/bin" in DOCKERFILE.read_text()
+    assert "/venv/bin" in DOCKERFILE.read_text()
 
 
 def test_dockerfile_cmd_is_run_py() -> None:

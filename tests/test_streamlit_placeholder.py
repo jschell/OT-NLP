@@ -38,9 +38,9 @@ def test_dockerfile_uses_uv_sync() -> None:
     """Streamlit Dockerfile must use 'uv sync' — not pip or uv pip install."""
     content = (STREAMLIT_DIR / "Dockerfile.streamlit").read_text()
     assert "uv sync" in content, "Dockerfile.streamlit must use 'uv sync'"
-    assert (
-        "pip install" not in content
-    ), "Dockerfile.streamlit must not call pip install in any form"
+    assert "pip install" not in content, (
+        "Dockerfile.streamlit must not call pip install in any form"
+    )
 
 
 def test_dockerfile_sets_venv_on_path() -> None:

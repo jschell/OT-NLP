@@ -3,7 +3,7 @@ FROM python:3.11-slim
 # Typst — pinned single-binary PDF renderer (used in Stage 6)
 ARG TYPST_VERSION=0.12.0
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      curl xz-utils pandoc \
+      build-essential curl xz-utils pandoc \
     && curl -L \
       "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
       | tar -xJ --strip-components=1 -C /usr/local/bin \
@@ -19,11 +19,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Copy dependency specs from the repo root (build context must be '.')
 COPY pyproject.toml uv.lock ./
 
-# Install production deps into a venv; --no-dev excludes pytest/ruff/pyright
+# Install into /venv (not /pipeline/.venv — that path is hidden by the bind mount)
+ENV UV_PROJECT_ENVIRONMENT=/venv
 RUN uv sync --frozen --no-dev
 
 # Put the venv on PATH so 'python' and entry-points work without 'uv run'
-ENV PATH="/pipeline/.venv/bin:$PATH"
+ENV PATH="/venv/bin:$PATH"
 
 # Default entrypoint: full pipeline orchestrator.
 # Override CMD for single-stage execution, e.g.:
