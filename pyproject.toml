@@ -21,6 +21,7 @@ dependencies = [
     "streamlit==1.35.0",
     "usfm-grammar==3.1.2; sys_platform == 'linux'",
     "pronouncing==0.2.0",
+    "setuptools>=65,<75",  # pronouncing==0.2.0 requires pkg_resources (removed in setuptools>=75)
     "anthropic==0.28.1",
     "openai==1.35.0",
     "google-generativeai==0.7.2",
