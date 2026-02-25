@@ -51,10 +51,6 @@ def test_app_exists() -> None:
     assert (STREAMLIT_DIR / "app.py").exists()
 
 
-def test_app_is_placeholder() -> None:
-    content = (STREAMLIT_DIR / "app.py").read_text()
-    assert "Coming in Stage 6" in content
-
 
 def test_app_has_set_page_config() -> None:
     content = (STREAMLIT_DIR / "app.py").read_text()
