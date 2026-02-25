@@ -273,8 +273,7 @@ def _process_verse(
                 (without verse_id prefix — caller prepends it).
             profile_tuple: tuple for breath_profiles insert
                 (mean_weight, open_ratio, guttural_density, colon_count,
-                 colon_boundaries_json, stress_positions_json,
-                 breath_curve_json).
+                 colon_boundaries, stress_positions, breath_curve).
     """
     all_syllables: list[dict] = []
     colon_boundaries: list[int] = [0]
@@ -301,9 +300,9 @@ def _process_verse(
     if not all_syllables:
         return [], (
             0.0, 0.0, 0.0, 1,
-            json.dumps([0]),
-            json.dumps([]),
-            json.dumps([]),
+            [0],  # colon_boundaries — PostgreSQL INTEGER[]
+            [],   # stress_positions — PostgreSQL NUMERIC[]
+            [],   # breath_curve    — PostgreSQL NUMERIC[]
         )
 
     n_syls = len(all_syllables)
@@ -350,9 +349,9 @@ def _process_verse(
         open_ratio,
         guttural_density,
         colon_count,
-        json.dumps(colon_boundaries),
-        json.dumps(stress_positions),
-        json.dumps(breath_curve),
+        colon_boundaries,   # PostgreSQL INTEGER[]
+        stress_positions,   # PostgreSQL NUMERIC[]
+        breath_curve,       # PostgreSQL NUMERIC[]
     )
     return syllable_rows, profile
 
