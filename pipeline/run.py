@@ -139,6 +139,49 @@ def main() -> int:
         logger.exception("validate_data FAILED (unexpected error)")
         failures.append("validate_data")
 
+    # ── Stage 3: breath / phonetic analysis ───────────────────────────────────
+    logger.info("─── Stage 3: breath ─────────────────────────────────────────")
+    try:
+        from modules import breath as _breath
+        result = _breath.run(conn, config)
+        logger.info(
+            "breath: %d profiles, %d syllable_tokens in %.1fs",
+            result.get("breath_profiles", 0),
+            result.get("syllable_tokens", 0),
+            result.get("elapsed_s", 0.0),
+        )
+    except Exception:
+        logger.exception("Stage 3 FAILED")
+        failures.append("breath")
+
+    # ── Stage 4: translation scoring ──────────────────────────────────────────
+    logger.info("─── Stage 4: score ──────────────────────────────────────────")
+    try:
+        from modules import score as _score
+        result = _score.run(conn, config)
+        logger.info(
+            "score: %d pairs in %.1fs",
+            result.get("scored", 0),
+            result.get("elapsed_s", 0.0),
+        )
+    except Exception:
+        logger.exception("Stage 4 FAILED")
+        failures.append("score")
+
+    # ── Stage 5: LLM suggestions ──────────────────────────────────────────────
+    logger.info("─── Stage 5: suggest ────────────────────────────────────────")
+    try:
+        from modules import suggest as _suggest
+        result = _suggest.run(conn, config)
+        logger.info(
+            "suggest: generated=%s skipped=%s",
+            result.get("generated", 0),
+            result.get("skipped", 0),
+        )
+    except Exception:
+        logger.exception("Stage 5 FAILED")
+        failures.append("suggest")
+
     conn.close()
 
     # ── Summary ───────────────────────────────────────────────────────────────
