@@ -35,6 +35,9 @@ _st_stub.cache_data = lambda f=None, **kw: (f if f else lambda fn: fn)  # type: 
 _st_stub.set_page_config = MagicMock()  # type: ignore[attr-defined]
 _st_stub.sidebar = MagicMock()  # type: ignore[attr-defined]
 _st_stub.secrets = {}  # type: ignore[attr-defined]
+# st.runtime.exists() → False so the module-level page-rendering block is skipped
+_st_stub.runtime = MagicMock()  # type: ignore[attr-defined]
+_st_stub.runtime.exists.return_value = False  # type: ignore[attr-defined]
 sys.modules.setdefault("streamlit", _st_stub)
 
 # Also stub plotly import used at module level
