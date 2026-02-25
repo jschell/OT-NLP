@@ -221,8 +221,9 @@ def _load_hebrew_breath(
         cur.execute(q, params)
         return {
             row[0]: {
-                "breath_curve":     row[1] or [],
-                "stress_positions": row[2] or [],
+                # Cast Decimal elements to float (psycopg2 returns NUMERIC[] as Decimal[])
+                "breath_curve":     [float(x) for x in (row[1] or [])],
+                "stress_positions": [float(x) for x in (row[2] or [])],
                 "mean_weight":      float(row[3] or 0),
             }
             for row in cur.fetchall()
