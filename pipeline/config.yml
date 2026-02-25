@@ -30,15 +30,15 @@ translations:
   sources:
     - id:     KJV
       format: sqlite_scrollmapper
-      path:   /data/translations/t_kjv.db
+      path:   /data/translations/KJV.db
 
     - id:     YLT
       format: sqlite_scrollmapper
-      path:   /data/translations/t_ylt.db
+      path:   /data/translations/YLT.db
 
-    - id:     WEB
+    - id:     NHEB
       format: sqlite_scrollmapper
-      path:   /data/translations/t_web.db
+      path:   /data/translations/NHEB.db
 
     - id:     ULT
       format: usfm

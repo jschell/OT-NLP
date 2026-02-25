@@ -19,13 +19,19 @@ logger = logging.getLogger(__name__)
 
 # Known-good checks: (book_num, chapter, verse_num, translation_key, expected_prefix)
 # These are immutable facts — if they fail, the data is wrong.
+#
+# Notes on scrollmapper v2 DB content (as of 2025):
+#   KJV  — uses "The Lord" (mixed case), not the small-caps "LORD" of print editions
+#   YLT  — verse 1 text includes the psalm title prefix "A Psalm of David."
+#   NHEB — New Heart English Bible; replaced WEB (no WEB.db in v2 repo)
+#          Uses "The Lord" for YHWH; included as third-party English paraphrase
 CHECKS: list[tuple[int, int, int, str, str]] = [
     # Psalm 23:1 — primary fixture across all configured translations
-    (19, 23, 1, "KJV", "The LORD is my shepherd"),
-    (19, 23, 1, "YLT", "Jehovah"),
-    (19, 23, 1, "WEB", "Yahweh"),
-    (19, 23, 1, "ULT", "Yahweh"),
-    (19, 23, 1, "UST", "God"),
+    (19, 23, 1, "KJV",  "The Lord is my shepherd"),
+    (19, 23, 1, "YLT",  "A Psalm of David."),
+    (19, 23, 1, "NHEB", "The Lord is my shepherd"),
+    (19, 23, 1, "ULT",  "Yahweh"),
+    (19, 23, 1, "UST",  "God"),
     # Psalm 1:1 — first verse of the book
     (19, 1, 1, "KJV", "Blessed"),
     # Psalm 150:6 — last verse of the book

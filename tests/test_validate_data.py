@@ -28,9 +28,9 @@ def _mock_conn(verse_text: str | None) -> MagicMock:
 
 def test_run_passes_when_all_checks_pass() -> None:
     """run() must return {'passed': N, 'failed': 0} when all checks find data."""
-    conn = _mock_conn("The LORD is my shepherd; I shall not want.")
+    conn = _mock_conn("The Lord is my shepherd; I shall not want.")
     # Patch CHECKS to a single entry that the mock text satisfies
-    with patch("validate_data.CHECKS", [(19, 23, 1, "KJV", "The LORD is my shepherd")]):
+    with patch("validate_data.CHECKS", [(19, 23, 1, "KJV", "The Lord is my shepherd")]):
         result = run(conn, {})
     assert result["failed"] == 0
     assert result["passed"] > 0

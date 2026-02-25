@@ -27,11 +27,22 @@ from adapters.translation_adapter import (
 
 
 def _make_sqlite_db(tmp_path: Path, rows: list[tuple]) -> str:
-    """Create a scrollmapper-schema SQLite file at tmp_path/test.db."""
+    """Create a scrollmapper v2-schema SQLite file at tmp_path/test.db.
+
+    Table is named KJV_verses to match the adapter id used in all tests.
+    Rows are 4-tuples: (book_id, chapter, verse, text).
+    """
     db_path = str(tmp_path / "test.db")
     conn = sqlite3.connect(db_path)
-    conn.execute("CREATE TABLE t (b INTEGER, c INTEGER, v INTEGER, t TEXT)")
-    conn.executemany("INSERT INTO t VALUES (?,?,?,?)", rows)
+    conn.execute(
+        "CREATE TABLE KJV_verses "
+        "(id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        " book_id INTEGER, chapter INTEGER, verse INTEGER, text TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO KJV_verses (book_id, chapter, verse, text) VALUES (?,?,?,?)",
+        rows,
+    )
     conn.commit()
     conn.close()
     return db_path

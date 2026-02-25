@@ -68,18 +68,23 @@ class TranslationAdapter(ABC):
 
 
 # ─────────────────────────────────────────────────────────────────
-# SQLite adapter — scrollmapper format
-# Schema: CREATE TABLE t (b INTEGER, c INTEGER, v INTEGER, t TEXT)
-# where b = book_num (19 = Psalms), c = chapter, v = verse, t = text
+# SQLite adapter — scrollmapper format (v2 schema)
+# Schema: CREATE TABLE {ID}_verses
+#           (id INTEGER PRIMARY KEY, book_id INTEGER,
+#            chapter INTEGER, verse INTEGER, text TEXT)
+# where ID = translation abbreviation (e.g. KJV, YLT, NHEB),
+# book_id = book_num (19 = Psalms), chapter and verse are 1-based.
+# Some translations embed typographic markup (e.g. <FI>...<Fi>) which
+# is stripped before returning.
 # ─────────────────────────────────────────────────────────────────
 
 
 class SQLiteScrollmapperAdapter(TranslationAdapter):
     """
-    Adapter for scrollmapper-format SQLite Bible databases.
+    Adapter for scrollmapper-format SQLite Bible databases (v2 schema).
 
     Downloads available at:
-    https://github.com/scrollmapper/bible_databases/tree/master/sqlite
+    https://github.com/scrollmapper/bible_databases/tree/master/formats/sqlite
     """
 
     def get_verse(self, book_num: int, chapter: int, verse: int) -> str | None:
@@ -87,16 +92,20 @@ class SQLiteScrollmapperAdapter(TranslationAdapter):
         path = Path(self.config["path"])
         if not path.exists():
             raise FileNotFoundError(f"SQLite translation file not found: {path}")
+        table = f"{self.id}_verses"
         conn = sqlite3.connect(str(path))
         try:
             cur = conn.execute(
-                "SELECT t FROM t WHERE b = ? AND c = ? AND v = ?",
+                f"SELECT text FROM {table}"  # noqa: S608
+                " WHERE book_id = ? AND chapter = ? AND verse = ?",
                 (book_num, chapter, verse),
             )
             row = cur.fetchone()
             if row is None:
                 return None
-            return str(row[0]).strip()
+            # Strip typographic markup tags (e.g. <FI>...<Fi> used in YLT)
+            clean = re.sub(r"<[^>]+>", "", str(row[0])).strip()
+            return clean
         finally:
             conn.close()
 
