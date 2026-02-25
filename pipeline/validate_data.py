@@ -25,13 +25,15 @@ logger = logging.getLogger(__name__)
 #   YLT  — verse 1 text includes the psalm title prefix "A Psalm of David."
 #   NHEB — New Heart English Bible; replaced WEB (no WEB.db in v2 repo)
 #          Uses "The Lord" for YHWH; included as third-party English paraphrase
+#   ULT  — unfoldingWord Literal Text; verse 1 includes psalm superscription
+#   UST  — unfoldingWord Simplified Text; same structure as ULT
 CHECKS: list[tuple[int, int, int, str, str]] = [
     # Psalm 23:1 — primary fixture across all configured translations
     (19, 23, 1, "KJV",  "The Lord is my shepherd"),
     (19, 23, 1, "YLT",  "A Psalm of David."),
     (19, 23, 1, "NHEB", "The Lord is my shepherd"),
-    (19, 23, 1, "ULT",  "Yahweh"),
-    (19, 23, 1, "UST",  "God"),
+    (19, 23, 1, "ULT",  "A psalm of David."),
+    (19, 23, 1, "UST",  "A psalm of David."),
     # Psalm 1:1 — first verse of the book
     (19, 1, 1, "KJV", "Blessed"),
     # Psalm 150:6 — last verse of the book

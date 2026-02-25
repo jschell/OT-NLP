@@ -214,10 +214,12 @@ def _ingest_book(
             ))
         token_rows_by_verse[(chapter, verse_num)] = tokens
 
-    # Upsert verses, capture generated verse_ids
+    # Upsert verses, capture generated verse_ids.
+    # execute_values(fetch=True) returns the RETURNING rows itself and exhausts
+    # the cursor — capture the return value rather than calling cur.fetchall().
     logger.info("Upserting %d verse rows for book %d", len(verse_rows), book_num)
     with conn.cursor() as cur:
-        psycopg2.extras.execute_values(
+        returned = psycopg2.extras.execute_values(
             cur,
             """
             INSERT INTO verses (book_num, chapter, verse_num, hebrew_text)
@@ -229,9 +231,9 @@ def _ingest_book(
             verse_rows,
             fetch=True,
         )
-        verse_id_map: dict[tuple[int, int], int] = {
-            (r[0], r[1]): r[2] for r in cur.fetchall()
-        }
+    verse_id_map: dict[tuple[int, int], int] = {
+        (r[0], r[1]): r[2] for r in returned
+    }
     conn.commit()
 
     # Build flat token rows with verse_id

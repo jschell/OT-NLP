@@ -211,3 +211,44 @@ def test_adapter_factory_unknown_format_raises() -> None:
     """adapter_factory must raise ValueError for an unrecognized format string."""
     with pytest.raises(ValueError, match="Unknown translation format"):
         adapter_factory({"id": "X", "format": "magic_format"})
+
+
+# ── Test 11: USFMAdapter handles ULT-style inline \v in \q1 lines ──
+
+
+ULT_PSALM_23_USFM = r"""\id PSA
+\c 23
+\cl Psalm
+\d
+\q1 \v 1 \zaln-s |x-strong="H3068" x-morph="He,Np"\*\w Yahweh|x-occ="1"\w*\zaln-e*
+\zaln-s |x-strong="H7462b"\*\w is|x-occ="1"\w*
+\w my|x-occ="1"\w*
+\w shepherd|x-occ="1"\w*\zaln-e*;
+\q2 \zaln-s |x-strong="H2637"\*\w I|x-occ="1"\w*
+\w will|x-occ="1"\w*
+\w lack|x-occ="1"\w*
+\w nothing|x-occ="1"\w*\zaln-e*.
+\q1 \v 2 \zaln-s |x-strong="H7257"\*\w He|x-occ="1"\w*
+\w makes|x-occ="1"\w*
+\w me|x-occ="1"\w*
+\w lie|x-occ="1"\w*
+\w down|x-occ="1"\w*\zaln-e*.
+"""
+
+
+def test_usfm_adapter_ult_style_inline_verse(tmp_path: Path) -> None:
+    """USFMAdapter must parse ULT-style '\\q1 \\v N text' inline verse markers."""
+    usfm_dir = _make_usfm_dir(tmp_path, ULT_PSALM_23_USFM)
+    adapter = USFMAdapter({"id": "ULT", "format": "usfm", "path": str(usfm_dir)})
+
+    result_v1 = adapter.get_verse(19, 23, 1)
+    assert result_v1 is not None, "Verse 23:1 must be found in ULT-style USFM"
+    assert "Yahweh" in result_v1, f"Expected 'Yahweh' in v1, got: {result_v1!r}"
+    assert "shepherd" in result_v1, f"Expected 'shepherd' in v1, got: {result_v1!r}"
+    # Alignment markers and attribute blocks must be stripped
+    assert "zaln" not in result_v1
+    assert "x-strong" not in result_v1
+
+    result_v2 = adapter.get_verse(19, 23, 2)
+    assert result_v2 is not None, "Verse 23:2 must also be parsed"
+    assert "makes" in result_v2 or "lie" in result_v2

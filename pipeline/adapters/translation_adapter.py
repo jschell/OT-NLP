@@ -166,6 +166,12 @@ def _parse_usfm(text: str) -> _VerseCache:
     """
     Parse a USFM string into a verse map.
 
+    Handles both standard USFM (\\v N text on its own line) and the
+    unfoldingWord ULT/UST style where the verse marker is embedded inside
+    a paragraph marker line, e.g. ``\\q1 \\v 1 text...``.  Also handles
+    \\zaln-s/\\zaln-e alignment milestone markers and \\w word markup used
+    heavily in ULT/UST.
+
     Args:
         text: Full USFM file content as a string.
 
@@ -207,6 +213,19 @@ def _parse_usfm(text: str) -> _VerseCache:
                 parts.append(_strip_usfm_inline(tokens[2]))
             continue
 
+        # ULT/UST style: paragraph marker contains an inline \v N
+        # e.g. "\q1 \v 1 \zaln-s ...\*\w Yahweh|...\w* is my shepherd"
+        inline_v = re.match(r"^\\[pqmb]\d?\s+\\v\s+(\d+)\s*(.*)", line, re.DOTALL)
+        if inline_v:
+            _flush()
+            parts = []
+            with contextlib.suppress(IndexError, ValueError):
+                verse_num = int(inline_v.group(1))
+            rest = inline_v.group(2).strip()
+            if rest:
+                parts.append(_strip_usfm_inline(rest))
+            continue
+
         # Continuation text within the current verse
         if chapter and verse_num:
             # Skip structural markers that start new blocks
@@ -222,6 +241,11 @@ def _parse_usfm(text: str) -> _VerseCache:
                     parts.append(_strip_usfm_inline(tail))
             elif not line.startswith("\\"):
                 parts.append(_strip_usfm_inline(line))
+            elif line.startswith(r"\w ") or line.startswith(r"\zaln"):
+                # ULT/UST word-alignment continuation lines
+                stripped = _strip_usfm_inline(line)
+                if stripped:
+                    parts.append(stripped)
 
     _flush()
     return verses
@@ -232,15 +256,21 @@ def _strip_usfm_inline(text: str) -> str:
     Remove USFM inline character markers from a text fragment.
 
     Removes:
+      - Alignment milestones:  \\zaln-s |attrs\\* and \\zaln-e\\*  (ULT/UST)
       - Footnote spans:        \\f ... \\f*
       - Cross-ref spans:       \\x ... \\x*
       - Word markup:           \\w word|attrs\\w*  -> word
+      - Editorial braces:      { ... }  (ULT/UST rephrase markers)
       - Other inline markers:  \\nd\\* \\add\\* etc.
     """
+    # Remove unfoldingWord alignment milestone markers: \zaln-s |...\* \zaln-e\*
+    text = re.sub(r"\\zaln-[se][^\\]*\\\*", "", text)
     # Remove footnote and cross-reference spans (may be multi-token)
     text = re.sub(r"\\[fx]\s.*?\\[fx]\*", "", text)
     # Strip word markup: keep the word, discard the attribute block
     text = re.sub(r"\\w\s+(.*?)\|[^\\]*?\\w\*", r"\1", text)
+    # Remove editorial rephrasing braces used in ULT/UST { ... }
+    text = re.sub(r"[{}]", "", text)
     # Remove remaining inline markers like \nd \add \bk etc.
     text = re.sub(r"\\[a-zA-Z0-9]+\*?", "", text)
     return text.strip()
