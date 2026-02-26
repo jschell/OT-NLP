@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import plotly.graph_objects as go
 from visualize.arcs import chiasm_arc_figure
-from visualize.breath_curves import breath_curve_figure
+from visualize.breath_curves import breath_curve_figure, multi_verse_breath_figure
 from visualize.heatmaps import deviation_heatmap
 from visualize.radar import fingerprint_radar
 from visualize.report import pipeline_summary_chart
@@ -170,3 +170,50 @@ def test_pipeline_summary_bar_count() -> None:
     # The bar chart trace should have one bar per table
     bar_trace = next(t for t in fig.data if isinstance(t, go.Bar))
     assert len(bar_trace.x) == len(counts)
+
+
+# ── multi_verse_breath_figure ──────────────────────────────────────────────────
+
+
+def test_multi_verse_breath_figure_returns_figure() -> None:
+    """multi_verse_breath_figure returns a go.Figure for two verses."""
+    fig = multi_verse_breath_figure(
+        verse_labels=["23:1", "23:2"],
+        hebrew_curves=[[0.5, 0.8, 0.6], [0.4, 0.7, 0.9, 0.5]],
+        translation_curves={
+            "KJV": [[0.4, 0.7, 0.5], [0.3, 0.6, 0.8, 0.4]],
+        },
+        title="Test multi-verse",
+    )
+    assert isinstance(fig, go.Figure)
+    assert fig.layout.title.text == "Test multi-verse"
+
+
+def test_multi_verse_breath_figure_boundary_lines() -> None:
+    """N verses → N-1 boundary vlines added to fig.layout.shapes."""
+    n_verses = 3
+    fig = multi_verse_breath_figure(
+        verse_labels=["23:1", "23:2", "23:3"],
+        hebrew_curves=[[0.5, 0.8], [0.4, 0.7], [0.6, 0.9, 0.5]],
+        translation_curves={},
+    )
+    # Each add_vline() adds one shape; expect n_verses - 1 = 2 shapes
+    assert len(fig.layout.shapes) == n_verses - 1
+
+
+def test_multi_verse_breath_figure_trace_count() -> None:
+    """1 Hebrew + N translation traces regardless of verse count."""
+    fig = multi_verse_breath_figure(
+        verse_labels=["23:1", "23:2"],
+        hebrew_curves=[[0.5, 0.8, 0.6], [0.4, 0.7]],
+        translation_curves={
+            "KJV": [[0.4, 0.7, 0.5], [0.3, 0.6]],
+            "YLT": [[0.6, 0.8, 0.4], [0.5, 0.7]],
+        },
+    )
+    # 1 Hebrew + 2 translations = 3 traces
+    assert len(fig.data) == 3
+    trace_names = [t.name for t in fig.data]
+    assert "Hebrew (source)" in trace_names
+    assert "KJV" in trace_names
+    assert "YLT" in trace_names

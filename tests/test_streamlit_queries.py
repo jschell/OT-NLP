@@ -156,6 +156,41 @@ def test_fetch_chiasm_candidates_returns_list() -> None:
     assert result[0]["pattern_type"] == "ABBA"
 
 
+# ── fetch_breath_profiles_batch ──────────────────────────────────────────────
+
+
+def test_fetch_breath_profiles_batch_returns_dict() -> None:
+    """fetch_breath_profiles_batch returns a dict keyed by verse_num."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    mock_cursor.fetchall.return_value = [
+        {
+            "verse_num": 1,
+            "verse_id": 310,
+            "hebrew_text": "יְהוָה רֹעִי",
+            "breath_curve": [0.5, 0.8, 0.6],
+            "mean_weight": 0.63,
+            "colon_count": 2,
+        },
+        {
+            "verse_num": 2,
+            "verse_id": 311,
+            "hebrew_text": "בִּנְאוֹת דֶּשֶׁא",
+            "breath_curve": [0.4, 0.7, 0.9],
+            "mean_weight": 0.67,
+            "colon_count": 2,
+        },
+    ]
+    result = _app.fetch_breath_profiles_batch(mock_conn, chapter=23, verse_nums=[1, 2])
+
+    assert isinstance(result, dict)
+    assert set(result.keys()) == {1, 2}
+    assert result[1]["verse_id"] == 310
+    assert result[2]["hebrew_text"] == "בִּנְאוֹת דֶּשֶׁא"
+    assert isinstance(result[1]["breath_curve"], list)
+
+
 # ── fetch_translation_scores_for_verse ───────────────────────────────────────
 
 
