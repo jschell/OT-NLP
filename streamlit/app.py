@@ -25,7 +25,10 @@ import streamlit as st
 sys.path.insert(0, "/pipeline")
 
 from visualize.arcs import chiasm_arc_figure  # noqa: E402
-from visualize.breath_curves import breath_curve_figure  # noqa: E402
+from visualize.breath_curves import (  # noqa: E402
+    breath_curve_figure,
+    multi_verse_breath_figure,
+)
 from visualize.heatmaps import deviation_heatmap  # noqa: E402
 from visualize.radar import fingerprint_radar  # noqa: E402
 from visualize.report import pipeline_summary_chart  # noqa: E402
@@ -89,6 +92,40 @@ def fetch_breath_profile(
         cur.execute(sql, (chapter, verse_num))
         row = cur.fetchone()
     return dict(row) if row else None
+
+
+def fetch_breath_profiles_batch(
+    conn: psycopg2.extensions.connection,
+    chapter: int,
+    verse_nums: list[int],
+) -> dict[int, dict]:
+    """Return {verse_num: row_dict} for all requested verses in one query.
+
+    Args:
+        conn: Live psycopg2 connection.
+        chapter: Psalm chapter number (book_num = 19 assumed).
+        verse_nums: Verse numbers to fetch.
+
+    Returns:
+        Dict keyed by verse_num; missing verses are absent from the result.
+    """
+    sql = """
+        SELECT
+            v.verse_num,
+            v.verse_id,
+            v.hebrew_text,
+            bp.breath_curve,
+            bp.mean_weight,
+            bp.colon_count
+        FROM verses v
+        LEFT JOIN breath_profiles bp ON bp.verse_id = v.verse_id
+        WHERE v.book_num = 19
+          AND v.chapter = %s
+          AND v.verse_num = ANY(%s)
+    """
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(sql, (chapter, verse_nums))
+        return {row["verse_num"]: dict(row) for row in cur.fetchall()}
 
 
 def fetch_deviation_scores(
@@ -434,8 +471,14 @@ if st.runtime.exists():  # type: ignore[attr-defined]
             return [r["verse_num"] for r in cur.fetchall()]
 
     verse_options = _cached_verse_nums(selected_chapter)
-    _v_sel = st.sidebar.selectbox("Verse", verse_options)
-    selected_verse: int = _v_sel or (verse_options[0] if verse_options else 1)
+    selected_verses: list[int] = st.sidebar.multiselect(
+        "Verses",
+        verse_options,
+        default=verse_options[:1] if verse_options else [],
+    )
+    if not selected_verses:
+        st.sidebar.warning("Select at least one verse.")
+        selected_verses = verse_options[:1] if verse_options else [1]
 
     all_keys = _cached_translation_keys()
     selected_translations: list[str] = st.sidebar.multiselect(
@@ -447,17 +490,8 @@ if st.runtime.exists():  # type: ignore[attr-defined]
     # ── Page 1: Breath Curves ─────────────────────────────────────────────────
 
     def render_breath_curves_page() -> None:
-        """Render Page 1 — Breath Curve Overlay."""
+        """Render Page 1 — Breath Curve Overlay (single or multi-verse)."""
         import re
-
-        st.header(f"Breath Curve Overlay — Psalm {selected_chapter}:{selected_verse}")
-        row = fetch_breath_profile(conn, selected_chapter, selected_verse)
-        if not row:
-            st.error("No data for this verse. Run the pipeline first.")
-            st.stop()
-
-        heb_curve: list[float] = row.get("breath_curve") or []
-        texts = fetch_translation_texts(conn, row["verse_id"], selected_translations)
 
         def _simple_weights(text: str) -> list[float]:
             """Approximate per-word breath weight from syllable count heuristic."""
@@ -466,35 +500,118 @@ if st.runtime.exists():  # type: ignore[attr-defined]
                 return []
             return [max(0.1, min(1.0, len(w) / 8.0)) for w in words]
 
-        eng_curves = {k: _simple_weights(v) for k, v in texts.items()}
+        if len(selected_verses) == 1:
+            # ── Single verse: existing layout ────────────────────────────────
+            verse_num = selected_verses[0]
+            st.header(
+                f"Breath Curve Overlay — Psalm {selected_chapter}:{verse_num}"
+            )
+            row = fetch_breath_profile(conn, selected_chapter, verse_num)
+            if not row:
+                st.error("No data for this verse. Run the pipeline first.")
+                st.stop()
 
-        sug_rows = fetch_suggestions_for_verse(conn, row["verse_id"])
-        sug_curves = {
-            f"{r['translation_key']}*": _simple_weights(r["suggested_text"])
-            for r in sug_rows
-        }
+            heb_curve: list[float] = row.get("breath_curve") or []
+            texts = fetch_translation_texts(
+                conn, row["verse_id"], selected_translations
+            )
+            eng_curves = {k: _simple_weights(v) for k, v in texts.items()}
+            sug_rows = fetch_suggestions_for_verse(conn, row["verse_id"])
+            sug_curves = {
+                f"{r['translation_key']}*": _simple_weights(r["suggested_text"])
+                for r in sug_rows
+            }
 
-        fig = breath_curve_figure(
-            verse_id=row["verse_id"],
-            hebrew_curve=heb_curve,
-            translation_curves={
-                k: v for k, v in eng_curves.items() if k in selected_translations
-            },
-            suggestion_curves=sug_curves or None,
-            title=f"Psalm {selected_chapter}:{selected_verse} — Breath Curve",
-        )
-        st.plotly_chart(fig, use_container_width=True)
+            fig = breath_curve_figure(
+                verse_id=row["verse_id"],
+                hebrew_curve=heb_curve,
+                translation_curves={
+                    k: v for k, v in eng_curves.items() if k in selected_translations
+                },
+                suggestion_curves=sug_curves or None,
+                title=f"Psalm {selected_chapter}:{verse_num} — Breath Curve",
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("Hebrew text")
-            st.text(row.get("hebrew_text", ""))
-            st.metric("Mean breath weight", f"{(row.get('mean_weight') or 0.0):.3f}")
-            st.metric("Colon count", row.get("colon_count") or "—")
-        with col2:
-            st.subheader("Translation texts")
-            for key, text in texts.items():
-                st.markdown(f"**{key}:** {text}")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.subheader("Hebrew text")
+                st.text(row.get("hebrew_text", ""))
+                st.metric(
+                    "Mean breath weight",
+                    f"{(row.get('mean_weight') or 0.0):.3f}",
+                )
+                st.metric("Colon count", row.get("colon_count") or "—")
+            with col2:
+                st.subheader("Translation texts")
+                for key, text in texts.items():
+                    st.markdown(f"**{key}:** {text}")
+        else:
+            # ── Multi-verse: contiguous chart ────────────────────────────────
+            verse_range = f"{selected_verses[0]}–{selected_verses[-1]}"
+            st.header(
+                f"Breath Curve Overlay — Psalm {selected_chapter}:{verse_range}"
+            )
+            rows_batch = fetch_breath_profiles_batch(
+                conn, selected_chapter, selected_verses
+            )
+            if not rows_batch:
+                st.error("No data for these verses. Run the pipeline first.")
+                st.stop()
+
+            hebrew_curves: list[list[float]] = []
+            verse_labels_mv: list[str] = []
+            verse_texts_mv: dict[int, dict[str, str]] = {}
+            valid_verses = [v for v in selected_verses if v in rows_batch]
+
+            for v in valid_verses:
+                row_v = rows_batch[v]
+                hc = [float(x) for x in (row_v.get("breath_curve") or [])]
+                hebrew_curves.append(hc)
+                verse_labels_mv.append(f"{selected_chapter}:{v}")
+                texts_v = fetch_translation_texts(
+                    conn, row_v["verse_id"], selected_translations
+                )
+                verse_texts_mv[v] = dict(texts_v)
+
+            # Build {translation_key: [per-verse weight lists]}
+            trans_curves_mv: dict[str, list[list[float]]] = {
+                key: [] for key in selected_translations
+            }
+            for v in valid_verses:
+                texts_v = verse_texts_mv.get(v, {})
+                for key in selected_translations:
+                    trans_curves_mv[key].append(
+                        _simple_weights(texts_v.get(key, ""))
+                    )
+
+            if hebrew_curves:
+                fig = multi_verse_breath_figure(
+                    verse_labels=verse_labels_mv,
+                    hebrew_curves=hebrew_curves,
+                    translation_curves=trans_curves_mv,
+                    title=(
+                        f"Psalm {selected_chapter}:{verse_range} — Breath Curve"
+                    ),
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            # Per-verse text detail in expandable sections
+            for v in valid_verses:
+                row_v = rows_batch[v]
+                with st.expander(f"Psalm {selected_chapter}:{v} — texts"):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Hebrew**")
+                        st.text(row_v.get("hebrew_text", ""))
+                        st.metric(
+                            "Mean breath weight",
+                            f"{(row_v.get('mean_weight') or 0.0):.3f}",
+                        )
+                    with col2:
+                        st.markdown("**Translations**")
+                        for key, text in verse_texts_mv.get(v, {}).items():
+                            st.markdown(f"**{key}:** {text}")
 
     # ── Page 2: Deviation Heatmap ─────────────────────────────────────────────
 
@@ -608,71 +725,93 @@ if st.runtime.exists():  # type: ignore[attr-defined]
 
     def render_translation_comparison_page() -> None:
         """Render Page 4 — Translation Comparison with radar chart."""
-        st.header(f"Translation Comparison — Psalm {selected_chapter}:{selected_verse}")
-        row = fetch_breath_profile(conn, selected_chapter, selected_verse)
-        if not row:
-            st.error("No verse data.")
-            return
 
-        scores = fetch_translation_scores_for_verse(
-            conn, row["verse_id"], selected_translations
-        )
-        texts = fetch_translation_texts(conn, row["verse_id"], selected_translations)
+        def _render_translation_comparison_for_verse(verse_num: int) -> None:
+            """Render deviation table, radar chart, and suggestions for one verse."""
+            row = fetch_breath_profile(conn, selected_chapter, verse_num)
+            if not row:
+                st.error("No verse data.")
+                return
 
-        st.subheader("Deviation Scores")
-        table_rows = []
-        for key in selected_translations:
-            s = scores.get(key, {})
-            table_rows.append(
-                {
-                    "Translation": key,
-                    "Text": (texts.get(key, "—")[:60] + "…"),
-                    "Composite Dev": round(s.get("composite_deviation", 0.0), 4),
-                    "Breath Align": round(s.get("breath_alignment", 0.0), 4),
-                    "Density Dev": round(s.get("density_deviation", 0.0), 4),
-                    "Morpheme Dev": round(s.get("morpheme_deviation", 0.0), 4),
-                }
+            scores = fetch_translation_scores_for_verse(
+                conn, row["verse_id"], selected_translations
             )
-        st.dataframe(
-            pd.DataFrame(table_rows).set_index("Translation"),
-            use_container_width=True,
-        )
-
-        heb_sql = (
-            "SELECT syllable_density, morpheme_ratio, sonority_score, "
-            "clause_compression FROM verse_fingerprints WHERE verse_id = %s"
-        )
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(heb_sql, (row["verse_id"],))
-            heb_row = cur.fetchone()
-        # Cast Decimal values from PostgreSQL NUMERIC columns to float
-        heb_fp = {k: float(v) for k, v in dict(heb_row).items()} if heb_row else {}
-
-        if heb_fp and selected_translations:
-            trans_fps = build_translation_fingerprints(
-                heb_fp, scores, selected_translations
+            texts = fetch_translation_texts(
+                conn, row["verse_id"], selected_translations
             )
-            radar_fig = fingerprint_radar(
-                labels=selected_translations,
-                fingerprints=trans_fps,
-                hebrew_fingerprint=heb_fp,
-                title=f"Psalm {selected_chapter}:{selected_verse} — Fingerprint",
-            )
-            st.plotly_chart(radar_fig, use_container_width=True)
 
-        sug_rows = fetch_suggestions_for_verse(conn, row["verse_id"])
-        if sug_rows:
-            st.subheader("LLM Suggestions")
-            for s in sug_rows:
-                delta = s.get("improvement_delta") or 0.0
-                badge = "+" if delta > 0 else "-"
-                st.markdown(
-                    f"[{badge}] **{s['translation_key']}** "
-                    f"improvement delta={delta:.4f} "
-                    f"(via {s.get('llm_provider', 'unknown')}/"
-                    f"{s.get('llm_model', 'unknown')})"
+            st.subheader("Deviation Scores")
+            table_rows = []
+            for key in selected_translations:
+                s = scores.get(key, {})
+                table_rows.append(
+                    {
+                        "Translation": key,
+                        "Text": (texts.get(key, "—")[:60] + "…"),
+                        "Composite Dev": round(s.get("composite_deviation", 0.0), 4),
+                        "Breath Align": round(s.get("breath_alignment", 0.0), 4),
+                        "Density Dev": round(s.get("density_deviation", 0.0), 4),
+                        "Morpheme Dev": round(s.get("morpheme_deviation", 0.0), 4),
+                    }
                 )
-                st.markdown(f"> {s['suggested_text']}")
+            st.dataframe(
+                pd.DataFrame(table_rows).set_index("Translation"),
+                use_container_width=True,
+            )
+
+            heb_sql = (
+                "SELECT syllable_density, morpheme_ratio, sonority_score, "
+                "clause_compression FROM verse_fingerprints WHERE verse_id = %s"
+            )
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(heb_sql, (row["verse_id"],))
+                heb_row = cur.fetchone()
+            # Cast Decimal values from PostgreSQL NUMERIC columns to float
+            heb_fp = (
+                {k: float(v) for k, v in dict(heb_row).items()} if heb_row else {}
+            )
+
+            if heb_fp and selected_translations:
+                trans_fps = build_translation_fingerprints(
+                    heb_fp, scores, selected_translations
+                )
+                radar_fig = fingerprint_radar(
+                    labels=selected_translations,
+                    fingerprints=trans_fps,
+                    hebrew_fingerprint=heb_fp,
+                    title=f"Psalm {selected_chapter}:{verse_num} — Fingerprint",
+                )
+                st.plotly_chart(radar_fig, use_container_width=True)
+
+            sug_rows = fetch_suggestions_for_verse(conn, row["verse_id"])
+            if sug_rows:
+                st.subheader("LLM Suggestions")
+                for s in sug_rows:
+                    delta = s.get("improvement_delta") or 0.0
+                    badge = "+" if delta > 0 else "-"
+                    st.markdown(
+                        f"[{badge}] **{s['translation_key']}** "
+                        f"improvement delta={delta:.4f} "
+                        f"(via {s.get('llm_provider', 'unknown')}/"
+                        f"{s.get('llm_model', 'unknown')})"
+                    )
+                    st.markdown(f"> {s['suggested_text']}")
+
+        if len(selected_verses) == 1:
+            verse_num = selected_verses[0]
+            st.header(
+                f"Translation Comparison — Psalm {selected_chapter}:{verse_num}"
+            )
+            _render_translation_comparison_for_verse(verse_num)
+        else:
+            verse_range = f"{selected_verses[0]}–{selected_verses[-1]}"
+            st.header(
+                f"Translation Comparison — Psalm {selected_chapter}:{verse_range}"
+            )
+            tabs = st.tabs([f"v.{v}" for v in selected_verses])
+            for tab, verse_num in zip(tabs, selected_verses, strict=True):
+                with tab:
+                    _render_translation_comparison_for_verse(verse_num)
 
     # ── Page 5: Pipeline Summary ──────────────────────────────────────────────
 
