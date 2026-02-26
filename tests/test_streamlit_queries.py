@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -267,3 +268,38 @@ def test_build_translation_fingerprints_missing_scores_defaults() -> None:
     assert fps[0]["morpheme_ratio"] == pytest.approx(2.0)
     assert fps[0]["sonority_score"] == pytest.approx(0.6)
     assert fps[0]["clause_compression"] == pytest.approx(5.0)
+
+
+def test_build_translation_fingerprints_accepts_decimal_scores() -> None:
+    """build_translation_fingerprints handles Decimal deviation values from psycopg2.
+
+    psycopg2 returns NUMERIC columns as decimal.Decimal, not float.  Without an
+    explicit float() cast, subtracting Decimal from float raises TypeError and
+    the radar chart silently fails to render.
+    """
+    heb_fp = {
+        "syllable_density": 1.5714,
+        "morpheme_ratio": 2.8571,
+        "sonority_score": 0.7286,
+        "clause_compression": 7.0,
+    }
+    # Simulate the Decimal values psycopg2 returns for NUMERIC(7,4) columns
+    scores = {
+        "KJV": {
+            "density_deviation": Decimal("0.4603"),
+            "morpheme_deviation": Decimal("1.9682"),
+            "sonority_deviation": Decimal("0.1764"),
+            "compression_deviation": Decimal("2.5000"),
+        },
+    }
+    # Must not raise TypeError
+    fps = _app.build_translation_fingerprints(heb_fp, scores, ["KJV"])
+
+    assert len(fps) == 1
+    fp = fps[0]
+    # All values must be plain Python floats (not Decimal)
+    for dim, val in fp.items():
+        assert isinstance(val, float), f"{dim} is {type(val).__name__}, expected float"
+        assert val >= 0.0
+    # Spot-check: syllable_density = max(0, 1.5714 - 0.4603) ≈ 1.1111
+    assert fp["syllable_density"] == pytest.approx(1.5714 - 0.4603, abs=1e-4)

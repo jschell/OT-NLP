@@ -242,27 +242,29 @@ def build_translation_fingerprints(
     fps: list[dict[str, float]] = []
     for key in translation_keys:
         s = scores.get(key, {})
+        # psycopg2 returns NUMERIC columns as Decimal; cast to float so that
+        # arithmetic with heb_fp (already float) does not raise TypeError.
         fps.append(
             {
                 "syllable_density": max(
                     0.0,
                     heb_fp.get("syllable_density", 0.0)
-                    - s.get("density_deviation", 0.0),
+                    - float(s.get("density_deviation") or 0.0),
                 ),
                 "morpheme_ratio": max(
                     0.0,
                     heb_fp.get("morpheme_ratio", 0.0)
-                    - s.get("morpheme_deviation", 0.0),
+                    - float(s.get("morpheme_deviation") or 0.0),
                 ),
                 "sonority_score": max(
                     0.0,
                     heb_fp.get("sonority_score", 0.0)
-                    - s.get("sonority_deviation", 0.0),
+                    - float(s.get("sonority_deviation") or 0.0),
                 ),
                 "clause_compression": max(
                     0.0,
                     heb_fp.get("clause_compression", 0.0)
-                    - s.get("compression_deviation", 0.0),
+                    - float(s.get("compression_deviation") or 0.0),
                 ),
             }
         )
