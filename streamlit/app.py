@@ -597,7 +597,8 @@ if st.runtime.exists():  # type: ignore[attr-defined]
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(heb_sql, (row["verse_id"],))
             heb_row = cur.fetchone()
-        heb_fp = dict(heb_row) if heb_row else {}
+        # Cast Decimal values from PostgreSQL NUMERIC columns to float
+        heb_fp = {k: float(v) for k, v in dict(heb_row).items()} if heb_row else {}
 
         if heb_fp and selected_translations:
             trans_fps = [

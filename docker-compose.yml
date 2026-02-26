@@ -78,7 +78,9 @@ services:
       POSTGRES_USER:     ${POSTGRES_USER:-psalms}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-psalms_dev}
     volumes:
-      - ./streamlit:/app
+      # Mount only app.py so the .venv built into the image is preserved.
+      # Mounting the whole ./streamlit dir would shadow /app/.venv at runtime.
+      - ./streamlit/app.py:/app/app.py
       - ./pipeline:/pipeline:ro
     ports:
       - "8501:8501"
