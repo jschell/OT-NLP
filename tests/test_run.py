@@ -7,6 +7,7 @@ Area 3 (tests 9–10): check_connectivity
 """
 from __future__ import annotations
 
+import contextlib
 import importlib
 import json
 import logging
@@ -145,10 +146,8 @@ def test_run_stage_failure_continues_on_warn_continue(
     # The test verifies the on_error logic lives in the main loop;
     # we verify the pattern by calling run_stage for both stages
     with patch.object(r, "run_stage", side_effect=fake_run_stage):
-        try:
+        with contextlib.suppress(ValueError):
             fake_run_stage("ingest", MagicMock(), {})
-        except ValueError:
-            pass
         fake_run_stage("fingerprint", MagicMock(), {})
 
     assert "fingerprint" in stages_executed
