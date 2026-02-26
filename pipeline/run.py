@@ -12,6 +12,7 @@ Usage::
     python run.py --stages ingest,fingerprint  # specific stages only
     python run.py --check                      # connectivity + schema check
 """
+
 from __future__ import annotations
 
 import argparse
@@ -182,8 +183,7 @@ def run_stage(
     module_path = STAGE_REGISTRY.get(name)
     if module_path is None:
         raise ValueError(
-            f"Unknown stage: '{name}'. "
-            f"Valid stages: {list(STAGE_REGISTRY)}"
+            f"Unknown stage: '{name}'. Valid stages: {list(STAGE_REGISTRY)}"
         )
     mod = importlib.import_module(module_path)
     if not hasattr(mod, "run"):
@@ -197,9 +197,7 @@ def check_connectivity(conn: psycopg2.extensions.connection) -> bool:
     Logs the names of any missing tables before returning False.
     """
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
-        )
+        cur.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
         existing: set[str] = {row[0] for row in cur.fetchall()}
 
     missing = [t for t in REQUIRED_TABLES if t not in existing]
@@ -288,10 +286,7 @@ def main() -> int:
         except Exception:
             duration = round(time.monotonic() - t_start, 2)
             exc_type = sys.exc_info()[0]
-            error_msg = (
-                f"{stage_name}: "
-                f"{exc_type.__name__ if exc_type else 'Error'}"
-            )
+            error_msg = f"{stage_name}: {exc_type.__name__ if exc_type else 'Error'}"
             logger.exception(
                 "Stage failed: %s",
                 stage_name,

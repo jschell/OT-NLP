@@ -5,6 +5,7 @@ Outputs JSON-formatted log lines to stdout and, optionally, to a file.
 Each line contains: ts, level, name, msg plus any extra fields passed via
 the `extra` kwarg (stage, data, duration_s, run_id, rows_written).
 """
+
 from __future__ import annotations
 
 import json

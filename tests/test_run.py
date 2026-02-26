@@ -5,6 +5,7 @@ Area 1 (tests 1–3):  JsonFormatter + setup_logger
 Area 2 (tests 4–8):  run_stage, start_run, finish_run
 Area 3 (tests 9–10): check_connectivity
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -223,9 +224,7 @@ def test_check_missing_table_exits_1(caplog: pytest.LogCaptureFixture) -> None:
 
     # Return only a subset of tables — omit pipeline_runs and suggestions
     present = [
-        (t,)
-        for t in r.REQUIRED_TABLES
-        if t not in ("pipeline_runs", "suggestions")
+        (t,) for t in r.REQUIRED_TABLES if t not in ("pipeline_runs", "suggestions")
     ]
 
     mock_cursor = MagicMock()
