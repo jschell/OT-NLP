@@ -4,6 +4,7 @@
 All subprocess calls and filesystem side-effects are mocked.
 No live DB, Sphinx, nbconvert, or Typst installation required.
 """
+
 from __future__ import annotations
 
 import sys

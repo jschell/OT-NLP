@@ -1,5 +1,6 @@
 # pipeline/docs/conf.py
 """Sphinx configuration for the Psalms NLP Analysis report site."""
+
 from __future__ import annotations
 
 import sys

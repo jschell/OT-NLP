@@ -9,6 +9,7 @@ Sequence:
 Entry point follows the standard pipeline module interface:
     run(conn, config) -> dict
 """
+
 from __future__ import annotations
 
 import logging
@@ -127,9 +128,7 @@ def run(
             logger.info("PDF written to %s", pdf_path)
             results["typst"] = "ok"
     else:
-        logger.info(
-            "Typst not available or report.typ not found — skipping PDF"
-        )
+        logger.info("Typst not available or report.typ not found — skipping PDF")
         results["typst"] = "skipped"
 
     elapsed = time.monotonic() - t0
