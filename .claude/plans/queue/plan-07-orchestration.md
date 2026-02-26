@@ -3,6 +3,12 @@
 > **Depends on:** Plans 02–06c all complete and verified (ingest, fingerprint, breath,
 > chiasm, score, suggest, export all producing correct row counts on Psalms).
 > **Status:** active
+>
+> **⚠️ chiasm pre-population note (2026-02-25):** `chiasm.py` was run as a one-shot
+> command before plan-07 to unblock the Streamlit Chiasm Viewer.  The table currently
+> holds **6,117 rows**.  When Task 4 runs the full pipeline via `run.py`, the chiasm
+> stage will re-run and overwrite those rows.  Verify the count is still > 0 after
+> the orchestrated run (see Task 4 Step 4b and Task 5 Step 2b below).
 
 ## Goal
 
@@ -913,6 +919,14 @@ per-stage row-count map is stored in the `row_counts` JSONB column.
    # Expected: exits 0; pipeline_runs table has one new row with status='ok'
    ```
 
+4b. **Verify `chiasm_candidates` repopulated after orchestrated run:**
+
+   ```bash
+   docker compose exec db psql -U psalms -d psalms \
+     -c "SELECT COUNT(*) AS chiasm_candidates FROM chiasm_candidates;"
+   # Expected: count > 0 (should be ~6,117 rows for Psalms corpus)
+   ```
+
 5. Commit: `"chore(docker): set pipeline container default command to python run.py"`
 
 ---
@@ -953,4 +967,17 @@ per-stage row-count map is stored in the `row_counts` JSONB column.
    (introduce a temporary misconfiguration in one stage, observe the log, then
    revert).
 
-5. Commit: `"chore(stage7): record final acceptance verification for orchestration stage"`
+5. **Verify `chiasm_candidates` has rows after the full orchestrated pipeline run:**
+
+   ```bash
+   docker compose exec db psql -U psalms -d psalms -c \
+     "SELECT COUNT(*) AS chiasm_candidates FROM chiasm_candidates;"
+   # Expected: > 0 rows (pre-populated to 6,117 on 2026-02-25; run.py should
+   # re-produce a similar count via modules.chiasm when chiasm is in stages list)
+   ```
+
+   If the count is 0, confirm `chiasm` is listed in `config.yml` under
+   `pipeline.stages` and that `STAGE_REGISTRY` maps `"chiasm"` →
+   `"modules.chiasm"` in `run.py`.
+
+6. Commit: `"chore(stage7): record final acceptance verification for orchestration stage"`

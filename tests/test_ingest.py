@@ -6,6 +6,7 @@ target the helper functions that do NOT require a live TF API or DB.
 Integration tests (actual row counts) are verified via SQL queries
 documented in the acceptance criteria.
 """
+
 from __future__ import annotations
 
 from modules.ingest import POS_MAP, STEM_MAP, _count_prefixes_from_pfm

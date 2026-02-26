@@ -144,8 +144,7 @@ def build_heatmap_matrix(
     chapters: list[int] = sorted(pivot.index.tolist())
     keys: list[str] = pivot.columns.tolist()
     matrix: list[list[float]] = [
-        [float(pivot.loc[ch, key]) for key in keys]
-        for ch in chapters
+        [float(pivot.loc[ch, key]) for key in keys] for ch in chapters
     ]
     return chapters, keys, matrix
 
@@ -346,10 +345,7 @@ if st.runtime.exists():  # type: ignore[attr-defined]
 
     @st.cache_data(ttl=300)
     def _cached_chapters() -> list[int]:
-        sql = (
-            "SELECT DISTINCT chapter FROM verses "
-            "WHERE book_num = 19 ORDER BY chapter"
-        )
+        sql = "SELECT DISTINCT chapter FROM verses WHERE book_num = 19 ORDER BY chapter"
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(sql)
             return [r["chapter"] for r in cur.fetchall()]
@@ -357,8 +353,7 @@ if st.runtime.exists():  # type: ignore[attr-defined]
     @st.cache_data(ttl=300)
     def _cached_translation_keys() -> list[str]:
         sql = (
-            "SELECT DISTINCT translation_key FROM translations "
-            "ORDER BY translation_key"
+            "SELECT DISTINCT translation_key FROM translations ORDER BY translation_key"
         )
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(sql)
@@ -558,9 +553,7 @@ if st.runtime.exists():  # type: ignore[attr-defined]
 
     def render_translation_comparison_page() -> None:
         """Render Page 4 — Translation Comparison with radar chart."""
-        st.header(
-            f"Translation Comparison — Psalm {selected_chapter}:{selected_verse}"
-        )
+        st.header(f"Translation Comparison — Psalm {selected_chapter}:{selected_verse}")
         row = fetch_breath_profile(conn, selected_chapter, selected_verse)
         if not row:
             st.error("No verse data.")

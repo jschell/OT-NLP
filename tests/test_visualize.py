@@ -11,13 +11,11 @@ Run with:
 from __future__ import annotations
 
 import plotly.graph_objects as go
-
 from visualize.arcs import chiasm_arc_figure
 from visualize.breath_curves import breath_curve_figure
-from visualize.heatmaps import deviation_heatmap, syllable_openness_heatmap
+from visualize.heatmaps import deviation_heatmap
 from visualize.radar import fingerprint_radar
 from visualize.report import pipeline_summary_chart
-
 
 # ── breath_curves ─────────────────────────────────────────────────────────────
 

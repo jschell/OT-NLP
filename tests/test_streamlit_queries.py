@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import importlib
 import sys
-import types
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -30,8 +29,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "streamlit"))
 # error; only the decorator helpers need special handling so that
 # @st.cache_resource / @st.cache_data pass the decorated function through.
 _st_stub = MagicMock()
-_st_stub.cache_resource = lambda f=None, **kw: (f if f else lambda fn: fn)  # type: ignore[attr-defined]
-_st_stub.cache_data = lambda f=None, **kw: (f if f else lambda fn: fn)  # type: ignore[attr-defined]
+_st_stub.cache_resource = lambda f=None, **kw: f if f else lambda fn: fn  # type: ignore[attr-defined]
+_st_stub.cache_data = lambda f=None, **kw: f if f else lambda fn: fn  # type: ignore[attr-defined]
 _st_stub.set_page_config = MagicMock()  # type: ignore[attr-defined]
 _st_stub.sidebar = MagicMock()  # type: ignore[attr-defined]
 _st_stub.secrets = {}  # type: ignore[attr-defined]

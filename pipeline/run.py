@@ -83,6 +83,7 @@ def main() -> int:
     logger.info("─── Stage 2a: BHSA ingest ───────────────────────────────────")
     try:
         from modules import ingest as _ingest
+
         result = _ingest.run(conn, config)
         logger.info(
             "ingest: %d verses, %d tokens in %.1fs",
@@ -98,6 +99,7 @@ def main() -> int:
     logger.info("─── Stage 2b: fingerprint ───────────────────────────────────")
     try:
         from modules import fingerprint as _fp
+
         result = _fp.run(conn, config)
         logger.info(
             "fingerprint: %d rows in %.1fs",
@@ -112,6 +114,7 @@ def main() -> int:
     logger.info("─── Stage 1: translation ingest ─────────────────────────────")
     try:
         from modules import ingest_translations as _it
+
         result = _it.run(conn, config)
         logger.info(
             "ingest_translations: %d rows in %.1fs",
@@ -126,6 +129,7 @@ def main() -> int:
     logger.info("─── Stage 1: validate_data ──────────────────────────────────")
     try:
         import validate_data as _vd
+
         result = _vd.run(conn, config)
         logger.info(
             "validate_data: %d/%d checks passed",
@@ -143,6 +147,7 @@ def main() -> int:
     logger.info("─── Stage 3: breath ─────────────────────────────────────────")
     try:
         from modules import breath as _breath
+
         result = _breath.run(conn, config)
         logger.info(
             "breath: %d profiles, %d syllable_tokens in %.1fs",
@@ -158,6 +163,7 @@ def main() -> int:
     logger.info("─── Stage 4: score ──────────────────────────────────────────")
     try:
         from modules import score as _score
+
         result = _score.run(conn, config)
         logger.info(
             "score: %d pairs in %.1fs",
@@ -172,6 +178,7 @@ def main() -> int:
     logger.info("─── Stage 5: suggest ────────────────────────────────────────")
     try:
         from modules import suggest as _suggest
+
         result = _suggest.run(conn, config)
         logger.info(
             "suggest: generated=%s skipped=%s",

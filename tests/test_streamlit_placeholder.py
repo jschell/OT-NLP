@@ -51,7 +51,6 @@ def test_app_exists() -> None:
     assert (STREAMLIT_DIR / "app.py").exists()
 
 
-
 def test_app_has_set_page_config() -> None:
     content = (STREAMLIT_DIR / "app.py").read_text()
     assert "st.set_page_config" in content

@@ -223,24 +223,26 @@ def _detect_patterns(
             if outer_sim >= threshold and inner_sim >= threshold:
                 confidence = (outer_sim + inner_sim) / 2
                 if confidence >= min_confidence:
-                    candidates.append({
-                        "verse_id_start": min(v_ids_abba),
-                        "verse_id_end": max(v_ids_abba),
-                        "pattern_type": "ABBA",
-                        "colon_matches": [
-                            {
-                                "a": i,
-                                "b": i + 3,
-                                "similarity": round(outer_sim, 4),
-                            },
-                            {
-                                "a": i + 1,
-                                "b": i + 2,
-                                "similarity": round(inner_sim, 4),
-                            },
-                        ],
-                        "confidence": round(confidence, 4),
-                    })
+                    candidates.append(
+                        {
+                            "verse_id_start": min(v_ids_abba),
+                            "verse_id_end": max(v_ids_abba),
+                            "pattern_type": "ABBA",
+                            "colon_matches": [
+                                {
+                                    "a": i,
+                                    "b": i + 3,
+                                    "similarity": round(outer_sim, 4),
+                                },
+                                {
+                                    "a": i + 1,
+                                    "b": i + 2,
+                                    "similarity": round(inner_sim, 4),
+                                },
+                            ],
+                            "confidence": round(confidence, 4),
+                        }
+                    )
 
         # ABCBA window: i, i+1, i+2 (pivot), i+3, i+4
         if i + 4 < n:
@@ -250,25 +252,27 @@ def _detect_patterns(
             if outer_sim >= threshold and inner_sim >= threshold:
                 confidence = (outer_sim + inner_sim) / 2
                 if confidence >= min_confidence:
-                    candidates.append({
-                        "verse_id_start": min(v_ids_abcba),
-                        "verse_id_end": max(v_ids_abcba),
-                        "pattern_type": "ABCBA",
-                        "colon_matches": [
-                            {
-                                "a": i,
-                                "b": i + 4,
-                                "similarity": round(outer_sim, 4),
-                            },
-                            {
-                                "a": i + 1,
-                                "b": i + 3,
-                                "similarity": round(inner_sim, 4),
-                            },
-                            {"pivot": i + 2},
-                        ],
-                        "confidence": round(confidence, 4),
-                    })
+                    candidates.append(
+                        {
+                            "verse_id_start": min(v_ids_abcba),
+                            "verse_id_end": max(v_ids_abcba),
+                            "pattern_type": "ABCBA",
+                            "colon_matches": [
+                                {
+                                    "a": i,
+                                    "b": i + 4,
+                                    "similarity": round(outer_sim, 4),
+                                },
+                                {
+                                    "a": i + 1,
+                                    "b": i + 3,
+                                    "similarity": round(inner_sim, 4),
+                                },
+                                {"pivot": i + 2},
+                            ],
+                            "confidence": round(confidence, 4),
+                        }
+                    )
 
     return candidates
 

@@ -107,10 +107,7 @@ def run(
         silent=True,  # type: ignore[arg-type]
     )
     api = TF.load(
-        "book chapter verse "
-        "g_word_utf8 lex sp "
-        "prs uvf vs "
-        "pfm",
+        "book chapter verse g_word_utf8 lex sp prs uvf vs pfm",
         silent=True,  # type: ignore[arg-type]
     )
     # Reverse map: book_num → BHSA book name
@@ -124,9 +121,7 @@ def run(
         if not bhsa_name:
             logger.warning("No BHSA name mapping for book_num=%d", book_num)
             continue
-        v, t = _ingest_book(
-            conn, api, book_num, bhsa_name, debug_chapters, batch_size
-        )
+        v, t = _ingest_book(conn, api, book_num, bhsa_name, debug_chapters, batch_size)
         total_verses += v
         total_tokens += t
 
@@ -168,9 +163,7 @@ def _ingest_book(
     """
     F, T, L = api.F, api.T, api.L  # type: ignore[attr-defined]
 
-    book_node = next(
-        n for n in F.otype.s("book") if T.bookName(n) == bhsa_book_name
-    )
+    book_node = next(n for n in F.otype.s("book") if T.bookName(n) == bhsa_book_name)
     verse_nodes = L.d(book_node, "verse")
 
     verse_rows: list[tuple] = []
@@ -194,24 +187,24 @@ def _ingest_book(
             human_pos = POS_MAP.get(pos_tag, pos_tag)
             is_verb = pos_tag == "verb"
             is_noun = pos_tag in ("subs", "nmpr")
-            stem: str | None = (
-                STEM_MAP.get(F.vs.v(w_node)) if is_verb else None
-            )
+            stem: str | None = STEM_MAP.get(F.vs.v(w_node)) if is_verb else None
             pfm_val = F.pfm.v(w_node)
             prefix_count = _count_prefixes_from_pfm(pfm_val)
             has_suffix = bool(F.prs.v(w_node) or F.uvf.v(w_node))
             morpheme_count = prefix_count + 1 + (1 if has_suffix else 0)
 
-            tokens.append((
-                pos,
-                F.g_word_utf8.v(w_node),
-                F.lex.v(w_node),
-                human_pos,
-                morpheme_count,
-                is_verb,
-                is_noun,
-                stem,
-            ))
+            tokens.append(
+                (
+                    pos,
+                    F.g_word_utf8.v(w_node),
+                    F.lex.v(w_node),
+                    human_pos,
+                    morpheme_count,
+                    is_verb,
+                    is_noun,
+                    stem,
+                )
+            )
         token_rows_by_verse[(chapter, verse_num)] = tokens
 
     # Upsert verses, capture generated verse_ids.
@@ -231,9 +224,7 @@ def _ingest_book(
             verse_rows,
             fetch=True,
         )
-    verse_id_map: dict[tuple[int, int], int] = {
-        (r[0], r[1]): r[2] for r in returned
-    }
+    verse_id_map: dict[tuple[int, int], int] = {(r[0], r[1]): r[2] for r in returned}
     conn.commit()
 
     # Build flat token rows with verse_id
@@ -245,9 +236,7 @@ def _ingest_book(
         for t in tokens:
             all_token_rows.append((verse_id, *t))
 
-    logger.info(
-        "Upserting %d token rows for book %d", len(all_token_rows), book_num
-    )
+    logger.info("Upserting %d token rows for book %d", len(all_token_rows), book_num)
     batch_upsert(
         conn,
         """

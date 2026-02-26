@@ -33,9 +33,7 @@ def deviation_heatmap(
             y=y_labels,
             colorscale="RdYlGn_r",
             colorbar=dict(title="Mean Deviation"),
-            hovertemplate=(
-                "Psalm %{y} | %{x}<br>Deviation: %{z:.4f}<extra></extra>"
-            ),
+            hovertemplate=("Psalm %{y} | %{x}<br>Deviation: %{z:.4f}<extra></extra>"),
         )
     )
     fig.update_layout(

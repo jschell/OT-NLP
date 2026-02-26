@@ -41,12 +41,14 @@ def run(conn: psycopg2.extensions.connection, config: dict) -> dict:
     batch_size: int = config.get("scoring", {}).get("batch_size", 100)
 
     w = config.get("scoring", {}).get("deviation_weights", {})
-    dev_weights = np.array([
-        w.get("density", 0.35),
-        w.get("morpheme", 0.25),
-        w.get("sonority", 0.20),
-        w.get("compression", 0.20),
-    ])
+    dev_weights = np.array(
+        [
+            w.get("density", 0.35),
+            w.get("morpheme", 0.25),
+            w.get("sonority", 0.20),
+            w.get("compression", 0.20),
+        ]
+    )
 
     bw = config.get("scoring", {}).get("breath_alignment_weights", {})
     stress_weight: float = bw.get("stress", 0.60)
@@ -74,12 +76,14 @@ def run(conn: psycopg2.extensions.connection, config: dict) -> dict:
 
     score_rows: list[tuple] = []
     for verse_id, heb_fp in heb_fps.items():
-        heb_vec = np.array([
-            heb_fp["syllable_density"],
-            heb_fp["morpheme_ratio"],
-            heb_fp["sonority_score"],
-            heb_fp["clause_compression"],
-        ])
+        heb_vec = np.array(
+            [
+                heb_fp["syllable_density"],
+                heb_fp["morpheme_ratio"],
+                heb_fp["sonority_score"],
+                heb_fp["clause_compression"],
+            ]
+        )
         heb_curve = heb_breath.get(verse_id, {})
 
         for key in translation_keys:
@@ -88,12 +92,14 @@ def run(conn: psycopg2.extensions.connection, config: dict) -> dict:
                 continue
 
             eng_fp = english_fingerprint(text)
-            eng_vec = np.array([
-                eng_fp["syllable_density"],
-                eng_fp["morpheme_ratio"],
-                eng_fp["sonority_score"],
-                eng_fp["clause_compression"],
-            ])
+            eng_vec = np.array(
+                [
+                    eng_fp["syllable_density"],
+                    eng_fp["morpheme_ratio"],
+                    eng_fp["sonority_score"],
+                    eng_fp["clause_compression"],
+                ]
+            )
 
             diffs = np.abs(heb_vec - eng_vec)
             density_dev = float(diffs[0])
@@ -102,25 +108,25 @@ def run(conn: psycopg2.extensions.connection, config: dict) -> dict:
             compression_dev = float(diffs[3])
             composite_dev = float(np.dot(dev_weights, diffs))
 
-            stress_align, weight_match = _compute_breath_alignment(
-                heb_curve, text
-            )
+            stress_align, weight_match = _compute_breath_alignment(heb_curve, text)
             breath_align = round(
                 stress_align * stress_weight + weight_match * wm_weight, 4
             )
 
-            score_rows.append((
-                verse_id,
-                key,
-                round(density_dev, 4),
-                round(morpheme_dev, 4),
-                round(sonority_dev, 4),
-                round(compression_dev, 4),
-                round(composite_dev, 4),
-                round(stress_align, 4),
-                round(weight_match, 4),
-                round(breath_align, 4),
-            ))
+            score_rows.append(
+                (
+                    verse_id,
+                    key,
+                    round(density_dev, 4),
+                    round(morpheme_dev, 4),
+                    round(sonority_dev, 4),
+                    round(compression_dev, 4),
+                    round(composite_dev, 4),
+                    round(stress_align, 4),
+                    round(weight_match, 4),
+                    round(breath_align, 4),
+                )
+            )
 
     batch_upsert(
         conn,
@@ -184,8 +190,8 @@ def _load_hebrew_fingerprints(
         return {
             row[0]: {
                 "syllable_density": float(row[1] or 0),
-                "morpheme_ratio":   float(row[2] or 0),
-                "sonority_score":   float(row[3] or 0),
+                "morpheme_ratio": float(row[2] or 0),
+                "sonority_score": float(row[3] or 0),
                 "clause_compression": float(row[4] or 0),
             }
             for row in cur.fetchall()
@@ -221,10 +227,10 @@ def _load_hebrew_breath(
         cur.execute(q, params)
         return {
             row[0]: {
-                # Cast Decimal elements to float (psycopg2 returns NUMERIC[] as Decimal[])
-                "breath_curve":     [float(x) for x in (row[1] or [])],
+                # Cast Decimal → float (psycopg2 returns NUMERIC[] as Decimal[])
+                "breath_curve": [float(x) for x in (row[1] or [])],
                 "stress_positions": [float(x) for x in (row[2] or [])],
-                "mean_weight":      float(row[3] or 0),
+                "mean_weight": float(row[3] or 0),
             }
             for row in cur.fetchall()
         }
@@ -307,8 +313,7 @@ def _compute_breath_alignment(
             stress_align = 0.5
         else:
             distances = [
-                min(abs(h_pos - e_pos) for e_pos in eng_stress)
-                for h_pos in heb_stress
+                min(abs(h_pos - e_pos) for e_pos in eng_stress) for h_pos in heb_stress
             ]
             stress_align = max(0.0, 1.0 - sum(distances) / len(distances))
 
