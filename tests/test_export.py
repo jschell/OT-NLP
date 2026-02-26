@@ -10,13 +10,10 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # Ensure pipeline/ is on the path
 sys.path.insert(0, str(Path(__file__).parent.parent / "pipeline"))
 
 import modules.export as export_module
-
 
 # ── Fixtures ─────────────────────────────────────────────────────
 
@@ -50,6 +47,7 @@ def test_export_returns_dict(tmp_path: Path) -> None:
     with (
         patch("modules.export.subprocess.run", return_value=mock_result_ok),
         patch("modules.export.shutil.which", return_value=None),  # no typst
+        patch("modules.export.shutil.copy"),  # executed nb copy to docs dir
     ):
         result = export_module.run(mock_conn, config)
 
@@ -82,6 +80,7 @@ def test_export_creates_output_dir(tmp_path: Path) -> None:
     with (
         patch("modules.export.subprocess.run", return_value=mock_result),
         patch("modules.export.shutil.which", return_value=None),
+        patch("modules.export.shutil.copy"),  # executed nb copy to docs dir
     ):
         export_module.run(mock_conn, config)
 
@@ -107,6 +106,7 @@ def test_export_skips_typst_gracefully(tmp_path: Path) -> None:
     with (
         patch("modules.export.subprocess.run", return_value=mock_result),
         patch("modules.export.shutil.which", return_value=None),  # typst absent
+        patch("modules.export.shutil.copy"),  # executed nb copy to docs dir
     ):
         result = export_module.run(mock_conn, config)
 
@@ -130,6 +130,7 @@ def test_sphinx_build_called(tmp_path: Path) -> None:
     with (
         patch("modules.export.subprocess.run", return_value=mock_result) as mock_run,
         patch("modules.export.shutil.which", return_value=None),
+        patch("modules.export.shutil.copy"),  # executed nb copy to docs dir
     ):
         export_module.run(mock_conn, config)
 
