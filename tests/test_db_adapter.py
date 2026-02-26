@@ -1,5 +1,6 @@
 # tests/test_db_adapter.py
 """Tests for db_adapter resumable upsert utilities."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -90,7 +91,7 @@ def test_verse_ids_for_stage_subtracts_done() -> None:
     # Second call: get_processed_verse_ids → returns {2, 4}
     cur.fetchall.side_effect = [
         [(1,), (2,), (3,), (4,)],  # all verse ids
-        [(2,), (4,)],              # already processed
+        [(2,), (4,)],  # already processed
     ]
 
     result = verse_ids_for_stage(conn, "verse_fingerprints", [19])

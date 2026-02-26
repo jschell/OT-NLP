@@ -145,10 +145,7 @@ def _build_prompt(candidate: dict) -> str:
     deviation score, and specific phonetic guidance derived from the Hebrew
     breath profile.
     """
-    ref = (
-        f"{candidate['book_name']} "
-        f"{candidate['chapter']}:{candidate['verse_num']}"
-    )
+    ref = f"{candidate['book_name']} {candidate['chapter']}:{candidate['verse_num']}"
     hebrew = candidate["hebrew_text"]
     translation_key = candidate["translation_key"]
     existing_text = candidate["existing_translation"]
@@ -162,9 +159,7 @@ def _build_prompt(candidate: dict) -> str:
             "predominantly open, resonant vowels (high phonetic weight)"
         )
     elif mean_weight < 0.40:
-        phonetic_notes.append(
-            "compressed, closed syllables (low phonetic weight)"
-        )
+        phonetic_notes.append("compressed, closed syllables (low phonetic weight)")
     else:
         phonetic_notes.append("balanced mix of open and closed syllables")
 
@@ -173,8 +168,8 @@ def _build_prompt(candidate: dict) -> str:
             "frequent guttural consonants (breathy, aspirated quality)"
         )
 
-    phonetic_desc = "; ".join(phonetic_notes) if phonetic_notes else (
-        "standard phonetic texture"
+    phonetic_desc = (
+        "; ".join(phonetic_notes) if phonetic_notes else ("standard phonetic texture")
     )
 
     if mean_weight > 0.55:
@@ -323,9 +318,7 @@ def _weighted_deviation(
     return total
 
 
-def _store_suggestion(
-    conn: psycopg2.extensions.connection, s: dict
-) -> None:
+def _store_suggestion(conn: psycopg2.extensions.connection, s: dict) -> None:
     """Insert one suggestion row; commits immediately."""
     with conn.cursor() as cur:
         cur.execute(

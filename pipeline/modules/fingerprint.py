@@ -26,11 +26,11 @@ CONSONANTS = frozenset("אבגדהוזחטיכלמנסעפצקרשת" + "ךםן�
 
 # Full vowel point Unicode characters (each = 1 syllable nucleus)
 FULL_VOWEL_POINTS = frozenset(
-    "\u05B4\u05B5\u05B6\u05B7\u05B8\u05B9\u05BA\u05BB\u05C1\u05C2"
+    "\u05b4\u05b5\u05b6\u05b7\u05b8\u05b9\u05ba\u05bb\u05c1\u05c2"
 )
 
 # Half/ultra-short vowel points (shewa + hataf forms)
-HALF_VOWEL_POINTS = frozenset("\u05B0\u05B1\u05B2\u05B3")
+HALF_VOWEL_POINTS = frozenset("\u05b0\u05b1\u05b2\u05b3")
 
 # Onset consonant sonority weights (0.0 = least sonorous, 1.0 = most)
 SONORITY: dict[str, float] = {
@@ -88,9 +88,7 @@ def run(
     debug_chapters: list[int] = corpus.get("debug_chapters", [])
     batch_size: int = config.get("fingerprint", {}).get("batch_size", 100)
 
-    pending = verse_ids_for_stage(
-        conn, "verse_fingerprints", book_nums, debug_chapters
-    )
+    pending = verse_ids_for_stage(conn, "verse_fingerprints", book_nums, debug_chapters)
     if not pending:
         logger.info("All verse fingerprints already computed.")
         return {
@@ -124,13 +122,15 @@ def run(
         if not tokens:
             continue
         fp = _compute_fingerprint(tokens)
-        fingerprint_rows.append((
-            verse_id,
-            fp["syllable_density"],
-            fp["morpheme_ratio"],
-            fp["sonority_score"],
-            fp["clause_compression"],
-        ))
+        fingerprint_rows.append(
+            (
+                verse_id,
+                fp["syllable_density"],
+                fp["morpheme_ratio"],
+                fp["sonority_score"],
+                fp["clause_compression"],
+            )
+        )
 
     batch_upsert(
         conn,

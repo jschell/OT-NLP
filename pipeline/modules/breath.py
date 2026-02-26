@@ -28,33 +28,31 @@ logger = logging.getLogger(__name__)
 # Full vowel points: (name, length_class, openness_score)
 # dagesh and diacriticals have openness=None and are not syllable nuclei.
 FULL_VOWELS: dict[str, tuple[str, str | None, float | None]] = {
-    "\u05B7": ("patah",     "short",  0.85),
-    "\u05B8": ("qamets",    "long",   1.00),
-    "\u05B5": ("tsere",     "long",   0.65),
-    "\u05B6": ("segol",     "short",  0.70),
-    "\u05B4": ("hiriq",     "short",  0.45),
-    "\u05B9": ("holam",     "long",   0.75),
-    "\u05BA": ("holam_waw", "long",   0.75),
-    "\u05BB": ("qibbuts",   "long",   0.40),
-    "\u05BC": ("dagesh",    None,     None),
-    "\u05C1": ("shin_dot",  None,     None),
-    "\u05C2": ("sin_dot",   None,     None),
+    "\u05b7": ("patah", "short", 0.85),
+    "\u05b8": ("qamets", "long", 1.00),
+    "\u05b5": ("tsere", "long", 0.65),
+    "\u05b6": ("segol", "short", 0.70),
+    "\u05b4": ("hiriq", "short", 0.45),
+    "\u05b9": ("holam", "long", 0.75),
+    "\u05ba": ("holam_waw", "long", 0.75),
+    "\u05bb": ("qibbuts", "long", 0.40),
+    "\u05bc": ("dagesh", None, None),
+    "\u05c1": ("shin_dot", None, None),
+    "\u05c2": ("sin_dot", None, None),
 }
 
 # Half-vowels: (name, length_class, openness_score)
 HALF_VOWELS: dict[str, tuple[str, str, float]] = {
-    "\u05B0": ("shewa",        "ultra-short", 0.10),
-    "\u05B1": ("hataf_segol",  "ultra-short", 0.35),
-    "\u05B2": ("hataf_patah",  "ultra-short", 0.40),
-    "\u05B3": ("hataf_qamets", "ultra-short", 0.45),
+    "\u05b0": ("shewa", "ultra-short", 0.10),
+    "\u05b1": ("hataf_segol", "ultra-short", 0.35),
+    "\u05b2": ("hataf_patah", "ultra-short", 0.40),
+    "\u05b3": ("hataf_qamets", "ultra-short", 0.45),
 }
 
 ALL_VOWELS: dict[str, tuple] = {**FULL_VOWELS, **HALF_VOWELS}
 
 # Hebrew consonants including final (sofit) forms
-CONSONANTS: frozenset[str] = frozenset(
-    "אבגדהוזחטיכלמנסעפצקרשת" + "ךםןףץ"
-)
+CONSONANTS: frozenset[str] = frozenset("אבגדהוזחטיכלמנסעפצקרשת" + "ךםןףץ")
 
 # Guttural consonants (affect following vowel, used for guttural_density)
 GUTTURALS: frozenset[str] = frozenset("אהחע")
@@ -72,48 +70,50 @@ ONSET_CLASS: dict[str, tuple[str, float]] = {
     "ז": ("sibilant", 0.45),
     "צ": ("sibilant", 0.35),
     # Liquids
-    "ל": ("liquid",   0.90),
-    "ר": ("liquid",   0.85),
+    "ל": ("liquid", 0.90),
+    "ר": ("liquid", 0.85),
     # Nasals
-    "מ": ("nasal",    0.80),
-    "נ": ("nasal",    0.80),
+    "מ": ("nasal", 0.80),
+    "נ": ("nasal", 0.80),
     # Approximants
-    "י": ("liquid",   0.75),
-    "ו": ("liquid",   0.70),
+    "י": ("liquid", 0.75),
+    "ו": ("liquid", 0.70),
     # Voiced stops
-    "ב": ("stop",     0.30),
-    "ג": ("stop",     0.30),
-    "ד": ("stop",     0.30),
+    "ב": ("stop", 0.30),
+    "ג": ("stop", 0.30),
+    "ד": ("stop", 0.30),
     # Voiceless stops
-    "כ": ("stop",     0.20),
-    "ך": ("stop",     0.20),
-    "פ": ("stop",     0.20),
-    "ף": ("stop",     0.20),
-    "ת": ("stop",     0.20),
-    "ק": ("stop",     0.15),
-    "ט": ("stop",     0.20),
+    "כ": ("stop", 0.20),
+    "ך": ("stop", 0.20),
+    "פ": ("stop", 0.20),
+    "ף": ("stop", 0.20),
+    "ת": ("stop", 0.20),
+    "ק": ("stop", 0.15),
+    "ט": ("stop", 0.20),
 }
 DEFAULT_ONSET: tuple[str, float] = ("stop", 0.25)
 
 # Masoretic disjunctive accents — each signals a colon boundary
-DISJUNCTIVE_ACCENTS: frozenset[str] = frozenset({
-    "\u0591",  # etnahta — primary verse-medial pause
-    "\u05C3",  # sof pasuq — end of verse
-    "\u0592",  # segolta
-    "\u0593",  # shalshelet
-    "\u0594",  # zaqef qatan
-    "\u0595",  # zaqef gadol
-    "\u0596",  # tifha
-    "\u059A",  # yetiv
-    "\u059C",  # geresh
-    "\u059D",  # geresh muqdam
-    "\u059E",  # gershayim
-    "\u05A1",  # pazer
-    "\u05A8",  # qadma
-    "\u05A9",  # telisha qetana
-    "\u05AC",  # ole
-    "\u05AE",  # zinor
-})
+DISJUNCTIVE_ACCENTS: frozenset[str] = frozenset(
+    {
+        "\u0591",  # etnahta — primary verse-medial pause
+        "\u05c3",  # sof pasuq — end of verse
+        "\u0592",  # segolta
+        "\u0593",  # shalshelet
+        "\u0594",  # zaqef qatan
+        "\u0595",  # zaqef gadol
+        "\u0596",  # tifha
+        "\u059a",  # yetiv
+        "\u059c",  # geresh
+        "\u059d",  # geresh muqdam
+        "\u059e",  # gershayim
+        "\u05a1",  # pazer
+        "\u05a8",  # qadma
+        "\u05a9",  # telisha qetana
+        "\u05ac",  # ole
+        "\u05ae",  # zinor
+    }
+)
 
 # ── Main entry point ──────────────────────────────────────────────────────
 
@@ -142,9 +142,7 @@ def run(
     debug_chapters: list[int] = corpus.get("debug_chapters", [])
     batch_size: int = config.get("breath", {}).get("batch_size", 100)
 
-    pending = verse_ids_for_stage(
-        conn, "breath_profiles", book_nums, debug_chapters
-    )
+    pending = verse_ids_for_stage(conn, "breath_profiles", book_nums, debug_chapters)
     if not pending:
         logger.info("All breath profiles already computed.")
         _backpopulate_colon_fingerprints(conn, book_nums)
@@ -299,18 +297,19 @@ def _process_verse(
 
     if not all_syllables:
         return [], (
-            0.0, 0.0, 0.0, 1,
+            0.0,
+            0.0,
+            0.0,
+            1,
             [0],  # colon_boundaries — PostgreSQL INTEGER[]
-            [],   # stress_positions — PostgreSQL NUMERIC[]
-            [],   # breath_curve    — PostgreSQL NUMERIC[]
+            [],  # stress_positions — PostgreSQL NUMERIC[]
+            [],  # breath_curve    — PostgreSQL NUMERIC[]
         )
 
     n_syls = len(all_syllables)
     weights = [s["breath_weight"] for s in all_syllables]
     mean_weight = round(sum(weights) / n_syls, 4)
-    open_ratio = round(
-        sum(1 for s in all_syllables if s.get("is_open")) / n_syls, 4
-    )
+    open_ratio = round(sum(1 for s in all_syllables if s.get("is_open")) / n_syls, 4)
     guttural_density = round(
         sum(1 for s in all_syllables if s.get("onset_class") == "guttural") / n_syls,
         4,
@@ -323,35 +322,35 @@ def _process_verse(
         for s in all_syllables
         if s.get("is_stressed")
     ]
-    breath_curve: list[float] = [
-        round(s["breath_weight"], 4) for s in all_syllables
-    ]
+    breath_curve: list[float] = [round(s["breath_weight"], 4) for s in all_syllables]
 
     # Build syllable_tokens rows (verse_id prepended by caller)
     syllable_rows: list[tuple] = []
     for syl in all_syllables:
-        syllable_rows.append((
-            syl["token_id"],
-            syl["syl_idx"],
-            syl["text"],
-            syl.get("nucleus_vowel"),
-            syl.get("vowel_openness"),
-            syl.get("vowel_length"),
-            syl.get("is_open"),
-            syl.get("onset_class"),
-            syl["breath_weight"],
-            round(syl["global_idx"] / max(n_syls - 1, 1), 4),
-            syl["colon_index"],
-        ))
+        syllable_rows.append(
+            (
+                syl["token_id"],
+                syl["syl_idx"],
+                syl["text"],
+                syl.get("nucleus_vowel"),
+                syl.get("vowel_openness"),
+                syl.get("vowel_length"),
+                syl.get("is_open"),
+                syl.get("onset_class"),
+                syl["breath_weight"],
+                round(syl["global_idx"] / max(n_syls - 1, 1), 4),
+                syl["colon_index"],
+            )
+        )
 
     profile: tuple = (
         mean_weight,
         open_ratio,
         guttural_density,
         colon_count,
-        colon_boundaries,   # PostgreSQL INTEGER[]
-        stress_positions,   # PostgreSQL NUMERIC[]
-        breath_curve,       # PostgreSQL NUMERIC[]
+        colon_boundaries,  # PostgreSQL INTEGER[]
+        stress_positions,  # PostgreSQL NUMERIC[]
+        breath_curve,  # PostgreSQL NUMERIC[]
     )
     return syllable_rows, profile
 
@@ -398,7 +397,7 @@ def parse_syllables(word: str) -> list[dict]:
         i += 1
 
         # Consume dagesh, shin dot, sin dot immediately after onset
-        while i < n and chars[i] in ("\u05BC", "\u05C1", "\u05C2", "\u05BD"):
+        while i < n and chars[i] in ("\u05bc", "\u05c1", "\u05c2", "\u05bd"):
             syl_text += chars[i]
             i += 1
 
@@ -418,9 +417,7 @@ def parse_syllables(word: str) -> list[dict]:
 
         # Consume any trailing non-consonant, non-accent characters
         while (
-            i < n
-            and chars[i] not in CONSONANTS
-            and chars[i] not in DISJUNCTIVE_ACCENTS
+            i < n and chars[i] not in CONSONANTS and chars[i] not in DISJUNCTIVE_ACCENTS
         ):
             if chars[i] in ALL_VOWELS:
                 vdata = ALL_VOWELS[chars[i]]
@@ -441,38 +438,40 @@ def parse_syllables(word: str) -> list[dict]:
             onset_weight=onset_weight,
         )
 
-        syllables.append({
-            "syl_idx":        syl_idx,
-            "text":           syl_text,
-            "nucleus_vowel":  nucleus_vowel,
-            "vowel_openness": vowel_openness,
-            "vowel_length":   vowel_length,
-            "is_open":        is_open,
-            "onset_class":    onset_class,
-            "breath_weight":  breath_weight,
-            "is_stressed":    vowel_length == "long",
-        })
+        syllables.append(
+            {
+                "syl_idx": syl_idx,
+                "text": syl_text,
+                "nucleus_vowel": nucleus_vowel,
+                "vowel_openness": vowel_openness,
+                "vowel_length": vowel_length,
+                "is_open": is_open,
+                "onset_class": onset_class,
+                "breath_weight": breath_weight,
+                "is_stressed": vowel_length == "long",
+            }
+        )
         syl_idx += 1
 
     # Guarantee at least one syllable for single-consonant / unvocalized words
     if not syllables:
         first_consonant = next((c for c in word if c in CONSONANTS), "")
-        onset_class, onset_weight = ONSET_CLASS.get(
-            first_consonant, DEFAULT_ONSET
+        onset_class, onset_weight = ONSET_CLASS.get(first_consonant, DEFAULT_ONSET)
+        syllables.append(
+            {
+                "syl_idx": 0,
+                "text": word,
+                "nucleus_vowel": None,
+                "vowel_openness": 0.3,
+                "vowel_length": "short",
+                "is_open": True,
+                "onset_class": onset_class,
+                "breath_weight": _compute_breath_weight(
+                    0.3, "short", True, onset_weight
+                ),
+                "is_stressed": False,
+            }
         )
-        syllables.append({
-            "syl_idx":        0,
-            "text":           word,
-            "nucleus_vowel":  None,
-            "vowel_openness": 0.3,
-            "vowel_length":   "short",
-            "is_open":        True,
-            "onset_class":    onset_class,
-            "breath_weight":  _compute_breath_weight(
-                0.3, "short", True, onset_weight
-            ),
-            "is_stressed":    False,
-        })
 
     return syllables
 
@@ -521,10 +520,10 @@ def _vowel_length_score(length: str | None) -> float:
         Float in (0.0, 1.0].
     """
     return {
-        "long":        1.00,
-        "short":       0.65,
+        "long": 1.00,
+        "short": 0.65,
         "ultra-short": 0.25,
-        "shewa":       0.10,
+        "shewa": 0.10,
     }.get(length or "short", 0.50)
 
 
@@ -570,20 +569,21 @@ def _backpopulate_colon_fingerprints(
 
     by_verse: dict[int, list[dict]] = defaultdict(list)
     for verse_id, colon_idx, mean_openness, mean_weight, syl_count in rows:
-        by_verse[verse_id].append({
-            "colon":       colon_idx,
-            "density":     round(float(syl_count), 2),
-            "sonority":    round(float(mean_openness or 0.0), 4),
-            "mean_weight": round(float(mean_weight or 0.0), 4),
-        })
+        by_verse[verse_id].append(
+            {
+                "colon": colon_idx,
+                "density": round(float(syl_count), 2),
+                "sonority": round(float(mean_openness or 0.0), 4),
+                "mean_weight": round(float(mean_weight or 0.0), 4),
+            }
+        )
 
     if not by_verse:
         logger.info("No colon data found for back-population.")
         return
 
     update_rows = [
-        (json.dumps(colons), verse_id)
-        for verse_id, colons in by_verse.items()
+        (json.dumps(colons), verse_id) for verse_id, colons in by_verse.items()
     ]
 
     with conn.cursor() as cur:
@@ -596,6 +596,4 @@ def _backpopulate_colon_fingerprints(
             update_rows,
         )
     conn.commit()
-    logger.info(
-        "Colon fingerprints back-populated for %d verses", len(update_rows)
-    )
+    logger.info("Colon fingerprints back-populated for %d verses", len(update_rows))

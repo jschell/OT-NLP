@@ -23,8 +23,8 @@ from modules.breath import (
 # Psalm 23:1 Hebrew text (niqqud included)
 PSALM_23_1_WORDS = [
     "יְהוָה",  # The LORD
-    "רֹעִי",   # is my shepherd
-    "לֹא",     # not
+    "רֹעִי",  # is my shepherd
+    "לֹא",  # not
     "אֶחְסָר",  # I shall want
 ]
 
@@ -34,9 +34,7 @@ def test_breath_weight_range() -> None:
     for word in PSALM_23_1_WORDS:
         for syl in parse_syllables(word):
             w = syl["breath_weight"]
-            assert 0.0 <= w <= 1.0, (
-                f"breath_weight={w} out of range for word '{word}'"
-            )
+            assert 0.0 <= w <= 1.0, f"breath_weight={w} out of range for word '{word}'"
 
 
 def test_colon_boundary_detected() -> None:
@@ -153,19 +151,19 @@ def test_vowel_length_score_unknown_is_midrange() -> None:
 
 def test_full_vowels_has_qamets() -> None:
     """FULL_VOWELS dict must contain qamets (U+05B8)."""
-    assert "\u05B8" in FULL_VOWELS
+    assert "\u05b8" in FULL_VOWELS
 
 
 def test_full_vowels_dagesh_has_no_openness() -> None:
     """Dagesh (U+05BC) entry must have None openness (it is not a vowel)."""
-    entry = FULL_VOWELS.get("\u05BC")
+    entry = FULL_VOWELS.get("\u05bc")
     assert entry is not None
     assert entry[2] is None  # third element = openness = None for dagesh
 
 
 def test_half_vowels_has_shewa() -> None:
     """HALF_VOWELS dict must contain shewa (U+05B0)."""
-    assert "\u05B0" in HALF_VOWELS
+    assert "\u05b0" in HALF_VOWELS
 
 
 def test_disjunctive_accents_has_etnahta() -> None:
@@ -175,7 +173,7 @@ def test_disjunctive_accents_has_etnahta() -> None:
 
 def test_disjunctive_accents_has_sof_pasuq() -> None:
     """DISJUNCTIVE_ACCENTS must include sof pasuq (U+05C3)."""
-    assert "\u05C3" in DISJUNCTIVE_ACCENTS
+    assert "\u05c3" in DISJUNCTIVE_ACCENTS
 
 
 def test_disjunctive_accents_minimum_size() -> None:
@@ -199,16 +197,20 @@ def test_parse_syllables_returns_nonempty() -> None:
 def test_parse_syllables_all_required_keys() -> None:
     """Every syllable dict must contain all required keys."""
     required = {
-        "syl_idx", "text", "nucleus_vowel", "vowel_openness",
-        "vowel_length", "is_open", "onset_class",
-        "breath_weight", "is_stressed",
+        "syl_idx",
+        "text",
+        "nucleus_vowel",
+        "vowel_openness",
+        "vowel_length",
+        "is_open",
+        "onset_class",
+        "breath_weight",
+        "is_stressed",
     }
     for word in PSALM_23_1_WORDS:
         for syl in parse_syllables(word):
             missing = required - syl.keys()
-            assert not missing, (
-                f"Syllable for '{word}' missing keys: {missing}"
-            )
+            assert not missing, f"Syllable for '{word}' missing keys: {missing}"
 
 
 def test_parse_syllables_breath_weight_is_float() -> None:

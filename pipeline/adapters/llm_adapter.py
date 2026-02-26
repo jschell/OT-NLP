@@ -56,16 +56,12 @@ class LLMAdapter:
         """
         llm_cfg = config.get("llm", {})
         provider: str = (
-            os.environ.get("LLM_PROVIDER")
-            or llm_cfg.get("provider")
-            or "none"
+            os.environ.get("LLM_PROVIDER") or llm_cfg.get("provider") or "none"
         )
         model: str = os.environ.get("LLM_MODEL") or llm_cfg.get("model") or ""
         api_key = os.environ.get("LLM_API_KEY", "")
         temperature = float(llm_cfg.get("temperature", 0.3))
-        ollama_host = os.environ.get(
-            "OLLAMA_HOST", llm_cfg.get("ollama_host", "")
-        )
+        ollama_host = os.environ.get("OLLAMA_HOST", llm_cfg.get("ollama_host", ""))
         return cls(provider, model, api_key, temperature, ollama_host)
 
     def ask(self, prompt: str, max_tokens: int = 256) -> str:

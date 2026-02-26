@@ -68,8 +68,7 @@ def breath_curve_figure(
                     dash="dot",
                 ),
                 hovertemplate=(
-                    f"Position: %{{x:.2f}}<br>Weight: %{{y:.3f}}"
-                    f"<extra>{key}</extra>"
+                    f"Position: %{{x:.2f}}<br>Weight: %{{y:.3f}}<extra>{key}</extra>"
                 ),
             )
         )
@@ -96,9 +95,7 @@ def breath_curve_figure(
         xaxis_title="Relative position in verse (0–1)",
         yaxis_title="Breath weight (0–1)",
         yaxis=dict(range=[0, 1.05]),
-        legend=dict(
-            orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
-        ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         hovermode="x unified",
         template="plotly_white",
         height=400,

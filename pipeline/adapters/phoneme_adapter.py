@@ -218,9 +218,7 @@ def _tokenize(text: str) -> list[str]:
         List of lowercase alphabetic tokens.
     """
     return [
-        w
-        for w in re.split(r"\s+", re.sub(r"[^\w\s]", " ", text))
-        if w and w.isalpha()
+        w for w in re.split(r"\s+", re.sub(r"[^\w\s]", " ", text)) if w and w.isalpha()
     ]
 
 

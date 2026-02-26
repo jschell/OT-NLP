@@ -81,11 +81,7 @@ def chiasm_arc_figure(
 
         fig.add_shape(
             type="path",
-            path=(
-                f"M {x_a:.3f} 0 "
-                f"Q {x_mid:.3f} {arc_height:.3f} "
-                f"{x_b:.3f} 0"
-            ),
+            path=(f"M {x_a:.3f} 0 Q {x_mid:.3f} {arc_height:.3f} {x_b:.3f} 0"),
             line=dict(color=color, width=line_width),
             opacity=max(0.4, float(confidence)),
         )

@@ -64,9 +64,7 @@ def _make_config(translation_keys: list[str] | None = None) -> dict:
     keys = translation_keys or ["KJV", "YLT"]
     return {
         "corpus": {"books": [{"book_num": 19}], "debug_chapters": [23]},
-        "translations": {
-            "sources": [{"id": k} for k in keys]
-        },
+        "translations": {"sources": [{"id": k} for k in keys]},
         "scoring": {
             "batch_size": 50,
             "deviation_weights": {
@@ -108,9 +106,7 @@ def test_score_idempotent() -> None:
 
     verse_id = 1
     heb_fp_rows = [(verse_id, 2.1, 1.8, 0.60, 3.5)]
-    heb_breath_rows = [
-        (verse_id, [0.6, 0.5, 0.7], [0.3, 0.7], 0.60)
-    ]
+    heb_breath_rows = [(verse_id, [0.6, 0.5, 0.7], [0.3, 0.7], 0.60)]
     trans_rows = [
         (verse_id, "KJV", "The LORD is my shepherd; I shall not want."),
         (verse_id, "YLT", "Jehovah is my shepherd, I do not lack."),
@@ -148,16 +144,16 @@ def test_deviation_ylt_lt_ust() -> None:
     def composite(text: str) -> float:
         eng = english_fingerprint(text)
         heb_vec = np.array(list(heb_fp.values()))
-        eng_vec = np.array([
-            eng["syllable_density"],
-            eng["morpheme_ratio"],
-            eng["sonority_score"],
-            eng["clause_compression"],
-        ])
+        eng_vec = np.array(
+            [
+                eng["syllable_density"],
+                eng["morpheme_ratio"],
+                eng["sonority_score"],
+                eng["clause_compression"],
+            ]
+        )
         return float(np.dot(weights, np.abs(heb_vec - eng_vec)))
 
     ylt_dev = composite(ylt_text)
     ust_dev = composite(ust_text)
-    assert ylt_dev < ust_dev, (
-        f"Expected YLT ({ylt_dev:.4f}) < UST ({ust_dev:.4f})"
-    )
+    assert ylt_dev < ust_dev, f"Expected YLT ({ylt_dev:.4f}) < UST ({ust_dev:.4f})"
