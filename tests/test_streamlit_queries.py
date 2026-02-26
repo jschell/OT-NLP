@@ -179,3 +179,91 @@ def test_fetch_translation_scores_for_verse() -> None:
     )
     assert "KJV" in result
     assert result["KJV"]["composite_deviation"] == pytest.approx(0.12)
+
+
+# ── build_translation_fingerprints ───────────────────────────────────────────
+
+
+def test_build_translation_fingerprints_uses_deviations() -> None:
+    """build_translation_fingerprints derives each dimension from heb_fp - deviation.
+
+    Guards against regression to hardcoded dummy values: with two translations
+    having *different* deviation scores, the resulting fingerprints must differ.
+    """
+    heb_fp = {
+        "syllable_density": 1.57,
+        "morpheme_ratio": 2.86,
+        "sonority_score": 0.73,
+        "clause_compression": 7.0,
+    }
+    scores = {
+        "KJV": {
+            "density_deviation": 0.46,
+            "morpheme_deviation": 1.97,
+            "sonority_deviation": 0.18,
+            "compression_deviation": 2.5,
+        },
+        "UST": {
+            "density_deviation": 0.10,
+            "morpheme_deviation": 1.00,
+            "sonority_deviation": 0.05,
+            "compression_deviation": 6.0,
+        },
+    }
+    fps = _app.build_translation_fingerprints(heb_fp, scores, ["KJV", "UST"])
+
+    assert len(fps) == 2
+
+    kjv_fp, ust_fp = fps
+
+    # Values must NOT be the old hardcoded dummies (1.5, 1.0, 0.4, 5.0)
+    assert kjv_fp["syllable_density"] != pytest.approx(1.5), "Dummy value detected"
+    assert kjv_fp["morpheme_ratio"] != pytest.approx(1.0), "Dummy value detected"
+    assert kjv_fp["sonority_score"] != pytest.approx(0.4), "Dummy value detected"
+    assert kjv_fp["clause_compression"] != pytest.approx(5.0), "Dummy value detected"
+
+    # KJV and UST must differ (different deviations → different fingerprints)
+    assert kjv_fp["syllable_density"] != pytest.approx(ust_fp["syllable_density"])
+    assert kjv_fp["clause_compression"] != pytest.approx(ust_fp["clause_compression"])
+
+    # Values are non-negative (max(0, …) guard)
+    for fp in fps:
+        for dim, val in fp.items():
+            assert val >= 0.0, f"{dim} went negative: {val}"
+
+    # Spot-check arithmetic: KJV syllable_density = max(0, 1.57 - 0.46) = 1.11
+    assert kjv_fp["syllable_density"] == pytest.approx(1.57 - 0.46, abs=1e-6)
+
+    # UST clause_compression: max(0, 7.0 - 6.0) = 1.0
+    assert ust_fp["clause_compression"] == pytest.approx(1.0, abs=1e-6)
+
+
+def test_build_translation_fingerprints_clamps_to_zero() -> None:
+    """build_translation_fingerprints never returns a negative dimension value."""
+    heb_fp = {"syllable_density": 0.5, "morpheme_ratio": 0.3,
+               "sonority_score": 0.1, "clause_compression": 1.0}
+    # Deviation larger than heb_fp value — would go negative without the clamp
+    scores = {
+        "KJV": {
+            "density_deviation": 2.0,
+            "morpheme_deviation": 2.0,
+            "sonority_deviation": 2.0,
+            "compression_deviation": 5.0,
+        }
+    }
+    fps = _app.build_translation_fingerprints(heb_fp, scores, ["KJV"])
+    for dim, val in fps[0].items():
+        assert val == pytest.approx(0.0), f"{dim} not clamped: {val}"
+
+
+def test_build_translation_fingerprints_missing_scores_defaults() -> None:
+    """When a translation has no scores entry, fingerprint mirrors heb_fp."""
+    heb_fp = {"syllable_density": 1.5, "morpheme_ratio": 2.0,
+               "sonority_score": 0.6, "clause_compression": 5.0}
+    scores: dict = {}  # no scores at all
+    fps = _app.build_translation_fingerprints(heb_fp, scores, ["NEW"])
+    # With zero deviation, eng ≈ heb
+    assert fps[0]["syllable_density"] == pytest.approx(1.5)
+    assert fps[0]["morpheme_ratio"] == pytest.approx(2.0)
+    assert fps[0]["sonority_score"] == pytest.approx(0.6)
+    assert fps[0]["clause_compression"] == pytest.approx(5.0)

@@ -216,6 +216,59 @@ def fetch_translation_scores_for_verse(
     return {r["translation_key"]: dict(r) for r in rows}
 
 
+def build_translation_fingerprints(
+    heb_fp: dict[str, float],
+    scores: dict[str, dict],
+    translation_keys: list[str],
+) -> list[dict[str, float]]:
+    """Reconstruct approximate English fingerprints from stored deviation scores.
+
+    Each dimension is estimated as ``max(0, heb_value - |heb - eng|)``.  Because
+    the DB stores unsigned deviations (``|heb − eng|``) rather than the raw
+    English values, this gives the lower-bound reconstruction; the result is
+    sufficient to show meaningful differences between translations on the radar.
+
+    Args:
+        heb_fp: Hebrew fingerprint with keys syllable_density, morpheme_ratio,
+            sonority_score, clause_compression.
+        scores: Per-translation score dicts keyed by translation_key, each
+            containing density_deviation, morpheme_deviation, sonority_deviation,
+            compression_deviation.
+        translation_keys: Ordered list of translation keys to include.
+
+    Returns:
+        List of fingerprint dicts, one per translation key, in the same order.
+    """
+    fps: list[dict[str, float]] = []
+    for key in translation_keys:
+        s = scores.get(key, {})
+        fps.append(
+            {
+                "syllable_density": max(
+                    0.0,
+                    heb_fp.get("syllable_density", 0.0)
+                    - s.get("density_deviation", 0.0),
+                ),
+                "morpheme_ratio": max(
+                    0.0,
+                    heb_fp.get("morpheme_ratio", 0.0)
+                    - s.get("morpheme_deviation", 0.0),
+                ),
+                "sonority_score": max(
+                    0.0,
+                    heb_fp.get("sonority_score", 0.0)
+                    - s.get("sonority_deviation", 0.0),
+                ),
+                "clause_compression": max(
+                    0.0,
+                    heb_fp.get("clause_compression", 0.0)
+                    - s.get("compression_deviation", 0.0),
+                ),
+            }
+        )
+    return fps
+
+
 def fetch_translation_texts(
     conn: psycopg2.extensions.connection,
     verse_id: int,
@@ -594,15 +647,9 @@ if st.runtime.exists():  # type: ignore[attr-defined]
         heb_fp = {k: float(v) for k, v in dict(heb_row).items()} if heb_row else {}
 
         if heb_fp and selected_translations:
-            trans_fps = [
-                {
-                    "syllable_density": 1.5,
-                    "morpheme_ratio": 1.0,
-                    "sonority_score": 0.4,
-                    "clause_compression": 5.0,
-                }
-                for _ in selected_translations
-            ]
+            trans_fps = build_translation_fingerprints(
+                heb_fp, scores, selected_translations
+            )
             radar_fig = fingerprint_radar(
                 labels=selected_translations,
                 fingerprints=trans_fps,
