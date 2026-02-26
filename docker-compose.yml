@@ -115,6 +115,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    command: ["python", "run.py"]
 
   # Ollama — optional local LLM (uncomment to enable)
   # ollama:
