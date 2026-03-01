@@ -86,8 +86,11 @@ quantified linguistic data.
 
 - **Windows host:** WSL2 + Docker Desktop with WSL2 backend
 - **macOS / Linux host:** Docker Engine + Docker Compose v2
+- [`uv`](https://docs.astral.sh/uv/getting-started/installation/) — for running tests and dev tools locally
 - ~4 GB disk space (BHSA corpus + translation files + PostgreSQL data)
 - Optional: API key for a cloud LLM provider (the pipeline runs fully without one)
+
+> **Windows users:** Run `check-env.ps1` to verify all prerequisites before starting.
 
 ---
 
@@ -115,10 +118,6 @@ docker compose run --rm pipeline python run.py
 #    http://localhost:8501
 ```
 
-> **Note:** The project is currently at the **blueprint stage** — Docker configuration
-> and pipeline code have not yet been written. The quick-start above reflects the
-> intended workflow once Stage 0 is complete.
-
 ---
 
 ## Translation Sources
@@ -131,6 +130,7 @@ docker compose run --rm pipeline python run.py
 | ASV | American Standard Version | 1901 | Formal equivalence |
 | YLT | Young's Literal Translation | 1862 | Maximally literal |
 | WEB | World English Bible | 2000 | Modern public domain |
+| NHEB | New Heart English Bible | 2008 | Modern public domain |
 | DBY | Darby Translation | 1890 | Literal, analytical |
 | ULT | unfoldingWord Literal Text | 2022 | Linguistically literal (CC-BY) |
 | UST | unfoldingWord Simplified Text | 2022 | Dynamic equivalence (CC-BY) |
@@ -161,39 +161,57 @@ translations:
 
 ```
 OT-NLP/
-├── docs/
-│   ├── psalms_nlp_highlevel_plan.md   # Full project scope
+├── pipeline/
+│   ├── run.py                    # Top-level orchestrator
+│   ├── config.yml                # Pipeline configuration
+│   ├── init_schema.sql           # Full DB schema (schema-first)
+│   ├── validate_data.py          # Data validation helpers
+│   ├── validate_infrastructure.py
+│   ├── Dockerfile.pipeline
+│   ├── modules/                  # One module per stage
+│   │   ├── ingest.py
+│   │   ├── ingest_translations.py
+│   │   ├── fingerprint.py
+│   │   ├── breath.py
+│   │   ├── chiasm.py
+│   │   ├── score.py
+│   │   ├── suggest.py
+│   │   ├── export.py
+│   │   └── logger.py
+│   ├── adapters/                 # Translation + LLM adapters
+│   │   ├── db_adapter.py
+│   │   ├── llm_adapter.py
+│   │   ├── phoneme_adapter.py
+│   │   └── translation_adapter.py
+│   └── visualize/                # Streamlit app + report generator
+│       ├── arcs.py
+│       ├── breath_curves.py
+│       ├── heatmaps.py
+│       ├── radar.py
+│       └── report.py
+├── streamlit/
+│   ├── app.py
+│   └── Dockerfile.streamlit
+├── data/
+│   ├── bhsa/                     # BHSA Hebrew corpus (downloaded at runtime)
+│   ├── translations/             # SQLite translation files
+│   └── outputs/                  # Generated reports, figures, notebooks
+├── tests/                        # pytest suite (one file per module)
+├── docs/                         # Stage design documents
+│   ├── psalms_nlp_highlevel_plan.md
 │   ├── stage_00_foundation.md
-│   ├── stage_01_data_acquisition.md
-│   ├── stage_02_morphology_fingerprinting.md
-│   ├── stage_03_breath_phonetic.md
-│   ├── stage_04_translation_scoring.md
-│   ├── stage_05_llm_suggestions.md
-│   ├── stage_06_visualization_reporting.md
-│   ├── stage_07_orchestration.md
-│   └── stage_08_corpus_expansion.md
+│   └── stage_01_data_acquisition.md … stage_08_corpus_expansion.md
+├── scripts/
+│   └── download_data.ps1         # Data download helper (Windows)
 ├── .claude/
-│   ├── CLAUDE.md                      # Claude Code project instructions
-│   └── skills/                        # 13 autonomous-work skills
-├── AGENTS.md                          # Agent instructions (Cursor/Windsurf/Copilot)
-└── README.md
-```
-
-Once Stage 0 is implemented, the working directory will include:
-
-```
-pipeline/
-├── run.py
-├── config.yml
-├── init_schema.sql
-├── modules/          # One module per stage
-├── adapters/         # Translation + LLM adapters
-└── visualize/        # Streamlit app + report generator
-data/
-├── bhsa/
-├── translations/
-└── outputs/
-notebooks/            # JupyterLab workspace
+│   ├── CLAUDE.md                 # Claude Code project instructions
+│   └── skills/                   # 13 autonomous-work skills
+├── docker-compose.yml
+├── pyproject.toml
+├── .env.example
+├── .pre-commit-config.yaml
+├── check-env.ps1                 # Windows prerequisite checker
+└── AGENTS.md                     # Agent instructions (Cursor/Windsurf/Copilot)
 ```
 
 ---
@@ -204,8 +222,14 @@ notebooks/            # JupyterLab workspace
 # Run all tests
 uv run --frozen pytest
 
+# Run specific module tests
+uv run --frozen pytest tests/test_<module>.py -v
+
 # Lint
 uv run --frozen ruff check .
+
+# Fix lint issues automatically
+uv run --frozen ruff check . --fix
 
 # Format
 uv run --frozen ruff format .
@@ -240,10 +264,12 @@ def run(conn: psycopg2.Connection, config: dict) -> dict:
 |------|--------|
 | High-level plan | Complete |
 | Stage design docs (0–8) | Complete |
-| Docker configuration | Not started |
-| Pipeline code | Not started |
-| Database schema | Not started |
-| Tests | Not started |
+| Docker configuration | Complete |
+| Database schema | Complete |
+| Pipeline code (Stages 0–7) | Complete |
+| Streamlit explorer | Complete |
+| Tests | Complete (24 test files) |
+| Corpus expansion (Stage 8) | In progress |
 
 ---
 
