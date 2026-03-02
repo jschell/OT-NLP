@@ -15,12 +15,15 @@ pipeline:
     - score
     - suggest
     - export
+    - genre_baseline
   on_error: stop   # stop | warn_continue
 
 corpus:
   books:
     - book_num: 19
       name: Psalms
+    - book_num: 23
+      name: Isaiah
   debug_chapters: []   # e.g. [23] to run only Psalm 23 during development
 
 bhsa:

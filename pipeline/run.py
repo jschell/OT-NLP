@@ -45,6 +45,7 @@ STAGE_REGISTRY: dict[str, str] = {
     "score": "modules.score",
     "suggest": "modules.suggest",
     "export": "modules.export",
+    "genre_baseline": "modules.genre_baseline",
 }
 
 # Tables that must exist before any stage can run
@@ -60,6 +61,7 @@ REQUIRED_TABLES: list[str] = [
     "translation_scores",
     "suggestions",
     "pipeline_runs",
+    "genre_baselines",
 ]
 
 

@@ -169,6 +169,25 @@ CREATE TABLE IF NOT EXISTS suggestions (
 );
 
 -- ───────────────────────────────────────────────────────────────
+-- Stage 8: Genre-level aggregate baselines
+-- ───────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS genre_baselines (
+    baseline_id               SERIAL    PRIMARY KEY,
+    genre                     TEXT      NOT NULL UNIQUE,
+    verse_count               INTEGER   NOT NULL,
+    syllable_density_mean     NUMERIC(6,4),
+    syllable_density_stddev   NUMERIC(6,4),
+    morpheme_ratio_mean       NUMERIC(6,4),
+    morpheme_ratio_stddev     NUMERIC(6,4),
+    sonority_mean             NUMERIC(6,4),
+    sonority_stddev           NUMERIC(6,4),
+    clause_compression_mean   NUMERIC(6,4),
+    clause_compression_stddev NUMERIC(6,4),
+    computed_at               TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ───────────────────────────────────────────────────────────────
 -- Stage 7: Pipeline run audit log
 -- ───────────────────────────────────────────────────────────────
 
