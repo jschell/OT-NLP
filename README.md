@@ -90,7 +90,7 @@ quantified linguistic data.
 - ~4 GB disk space (BHSA corpus + translation files + PostgreSQL data)
 - Optional: API key for a cloud LLM provider (the pipeline runs fully without one)
 
-> **Windows users:** Run `check-env.ps1` to verify all prerequisites before starting.
+> Run `bash scripts/check-env.sh` to verify all prerequisites before starting.
 
 ---
 
@@ -101,22 +101,88 @@ quantified linguistic data.
 git clone https://github.com/jschell/OT-NLP.git
 cd OT-NLP
 
-# 2. Copy and edit the environment file
+# 2. Create and edit the environment file
 cp .env.example .env
-# Edit .env — set POSTGRES_PASSWORD and any optional LLM API keys
+# Edit .env — set POSTGRES_PASSWORD and JUPYTER_TOKEN (required)
 
-# 3. Start persistent services (database + JupyterLab + Streamlit)
+# 3. Pre-flight check — verifies Docker, .env, ports
+bash scripts/check-env.sh
+
+# 4. Download all five translation sources (~50 MB + two git clones)
+bash scripts/download_data.sh
+
+# 5. Start the database
+docker compose up -d db
+
+# 6. Initialise the schema (idempotent — safe to run again)
+docker compose --profile pipeline run --rm db-init
+
+# 7. Start Streamlit + JupyterLab
 docker compose up -d
 
-# 4. Run the full pipeline
-docker compose run --rm pipeline python run.py
-
-# 5. Open JupyterLab
-#    http://localhost:8888
-
-# 6. Open Streamlit explorer
-#    http://localhost:8501
+# 8. Run the full pipeline
+#    First run: downloads ~200 MB BHSA corpus automatically (5–10 min, resumable)
+docker compose --profile pipeline run --rm pipeline python run.py
 ```
+
+> **After the pipeline completes:**
+> - Streamlit explorer: http://localhost:8501
+> - JupyterLab: http://localhost:8888
+
+---
+
+## First-Run Note
+
+On Stage 1 the pipeline calls `text-fabric` to download the BHSA Hebrew Bible
+corpus (~200 MB) into `data/bhsa/`. This happens automatically and is resumable
+— if interrupted, simply re-run Step 8 and the pipeline will pick up where it
+left off.
+
+---
+
+## Verification
+
+After the pipeline exits 0, confirm row counts in the database:
+
+```sql
+-- Connect: docker exec -it psalms_db psql -U psalms -d psalms
+
+-- Psalms verses and Isaiah verses
+SELECT book_num, COUNT(*) AS verses FROM verses GROUP BY book_num ORDER BY book_num;
+-- Expect: book 19 → 2,527  |  book 23 → 1,292
+
+-- Fingerprints
+SELECT COUNT(*) FROM verse_fingerprints;   -- expect 3,819 (Psalms + Isaiah)
+
+-- Translation scores
+SELECT t.translation_id, COUNT(*) FROM translation_scores ts
+JOIN translations t USING (translation_id) GROUP BY t.translation_id;
+
+-- Genre baselines
+SELECT genre, verse_count, syllable_density_mean FROM genre_baselines ORDER BY genre;
+-- hebrew_poetry.syllable_density_mean should exceed hebrew_prophecy
+
+-- Last pipeline run
+SELECT status, finished_at FROM pipeline_runs ORDER BY finished_at DESC LIMIT 1;
+-- Expect: status = 'ok'
+```
+
+---
+
+## Troubleshooting
+
+**`POSTGRES_PASSWORD: Set POSTGRES_PASSWORD in .env`**
+Docker Compose is refusing to start because POSTGRES_PASSWORD is unset.
+Copy `.env.example` to `.env` and set a real password.
+
+**`db-init` exits non-zero / schema errors**
+Run `docker compose logs db-init` to see the psql output.
+The most common cause is the database container not yet healthy — wait 10 s
+and retry Step 6.
+
+**Stage 1 fails with a text-fabric download error**
+Check your internet connection. Re-run Step 8; text-fabric resumes partial
+downloads. If the `data/bhsa/` directory is corrupt, delete it and re-run.
 
 ---
 
@@ -202,7 +268,9 @@ OT-NLP/
 │   ├── stage_00_foundation.md
 │   └── stage_01_data_acquisition.md … stage_08_corpus_expansion.md
 ├── scripts/
-│   └── download_data.ps1         # Data download helper (Windows)
+│   ├── check-env.sh              # Cross-platform pre-flight checker
+│   ├── download_data.sh          # Cross-platform translation downloader
+│   └── download_data.ps1         # Translation downloader (Windows legacy)
 ├── .claude/
 │   ├── CLAUDE.md                 # Claude Code project instructions
 │   └── skills/                   # 13 autonomous-work skills
@@ -269,7 +337,8 @@ def run(conn: psycopg2.Connection, config: dict) -> dict:
 | Pipeline code (Stages 0–7) | Complete |
 | Streamlit explorer | Complete |
 | Tests | Complete (24 test files) |
-| Corpus expansion (Stage 8) | In progress |
+| Corpus expansion (Stage 8) | Complete |
+| Docker distribution (Stage 9) | In progress |
 
 ---
 

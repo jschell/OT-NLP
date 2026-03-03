@@ -25,7 +25,7 @@ services:
     environment:
       POSTGRES_DB:       ${POSTGRES_DB:-psalms}
       POSTGRES_USER:     ${POSTGRES_USER:-psalms}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-psalms_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./pipeline:/pipeline:ro
@@ -46,11 +46,11 @@ services:
     restart: unless-stopped
     environment:
       JUPYTER_ENABLE_LAB: "yes"
-      JUPYTER_TOKEN:      ${JUPYTER_TOKEN:-psalms_dev}
+      JUPYTER_TOKEN:      ${JUPYTER_TOKEN:?Set JUPYTER_TOKEN in .env}
       POSTGRES_HOST:      db
       POSTGRES_DB:        ${POSTGRES_DB:-psalms}
       POSTGRES_USER:      ${POSTGRES_USER:-psalms}
-      POSTGRES_PASSWORD:  ${POSTGRES_PASSWORD:-psalms_dev}
+      POSTGRES_PASSWORD:  ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - ./notebooks:/home/jovyan/work
       - ./data:/home/jovyan/data
@@ -76,7 +76,7 @@ services:
       POSTGRES_HOST:     db
       POSTGRES_DB:       ${POSTGRES_DB:-psalms}
       POSTGRES_USER:     ${POSTGRES_USER:-psalms}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-psalms_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       # Mount only app.py so the .venv built into the image is preserved.
       # Mounting the whole ./streamlit dir would shadow /app/.venv at runtime.
@@ -90,6 +90,26 @@ services:
       db:
         condition: service_healthy
 
+  # ── Schema initialiser (run once before first pipeline run) ──
+  db-init:
+    image: postgres:16
+    profiles:
+      - pipeline
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    command: >
+      psql postgresql://${POSTGRES_USER:-psalms}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB:-psalms}
+      -f /pipeline/init_schema.sql
+      -f /pipeline/init_flags.sql
+    volumes:
+      - ./pipeline:/pipeline:ro
+    networks:
+      - psalms_net
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   # ── Pipeline runner (start with: --profile pipeline run) ──
   pipeline:
     build:
@@ -102,7 +122,7 @@ services:
       POSTGRES_HOST:     db
       POSTGRES_DB:       ${POSTGRES_DB:-psalms}
       POSTGRES_USER:     ${POSTGRES_USER:-psalms}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-psalms_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       LLM_PROVIDER:      ${LLM_PROVIDER:-none}
       LLM_API_KEY:       ${LLM_API_KEY:-}
       LLM_MODEL:         ${LLM_MODEL:-}
@@ -115,6 +135,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     command: ["python", "run.py"]
 
   # Ollama — optional local LLM (uncomment to enable)
